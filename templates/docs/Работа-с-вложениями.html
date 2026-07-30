@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block breadcrumbs %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-11 offset-md-1 mt_80">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="/"><i class="fas fa-home"></i></a></li>
+                    <li class="breadcrumb-item"><a href="/docs/">Документы</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Работа с вложениями</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+</div>
+{% endblock breadcrumbs %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="bg_white shadow-sm pd_20 mrgn_10">
+                <h5 class="mb-3"><i class="fas fa-paperclip text-muted mr-2"></i>Работа с вложениями: форматы и ограничения</h5>
+
+                <p>К заявке и к каждому комментарию можно прикрепить один или несколько файлов — как при создании обращения, так и позже.</p>
+
+                <p class="mt-3"><strong>Поддерживаемые форматы:</strong></p>
+                <ul style="line-height:2;">
+                    <li>Изображения — JPG, PNG, GIF;</li>
+                    <li>Документы — PDF, DOC/DOCX, XLS/XLSX, TXT;</li>
+                    <li>Архивы — ZIP;</li>
+                    <li>прочие форматы принимаются, но для них недоступен предпросмотр.</li>
+                </ul>
+
+                <p class="mt-3"><strong>Ограничения:</strong></p>
+                <ul style="line-height:2;">
+                    <li>максимальный размер одного файла — 25 МБ;</li>
+                    <li>до 10 вложений на одну заявку или комментарий за раз.</li>
+                </ul>
+
+                <p class="mt-3">Вложения, прикреплённые до отправки заявки, можно просмотреть и удалить, пока обращение не отправлено. После отправки удалить вложение может только автор заявки.</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock content %}

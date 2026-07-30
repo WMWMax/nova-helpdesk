@@ -1,0 +1,372 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block extrascripts %}
+    <link rel="stylesheet" href="{% static 'css/trumbowyg.min.css' %}">
+    <script src="{% static 'js/trumbowyg.min.js' %}"></script>
+{% endblock %}
+
+{% block breadcrumbs %}
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-md-11 offset-md-1 mt_80">
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb">
+                        <li class="breadcrumb-item"><a href="/"><i class="fas fa-home"></i></a></li>
+                        {% if task %}
+                        <li class="breadcrumb-item" aria-current="page"><a href="{{task.get_absolute_url}}">{{task}}</a></li>
+                        <li class="breadcrumb-item active" aria-current="page">Изменить заявку</li>
+                        {% else %}
+                        <li class="breadcrumb-item active" aria-current="page">Создать заявку</li>
+                        {% endif %}    
+                    </ol>
+                </nav>
+            </div>
+        </div>
+    </div>
+{% endblock breadcrumbs %}
+
+{% block content %}
+    <div class="container">
+        <div class="row">
+            <div class="col-md-12">
+                <div class="container-form shadow-sm bg_white pd_20 mrgn_10">
+                    <form id="addTask" action="" method="POST" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        <div class="form-row">
+                            <div class="form-group col-md-4">
+                                <label for="subject">Тема обращения</label>
+                                <input type="text" id='subject' name='subject' class="form-control" {% if task %}value="{{task.task_subject}}"{% endif %} required>
+                                <small class='text-muted'>Краткое наименование темы обращения</small>
+                            </div>
+                            <div class="form-group col-md-4">
+                                <label for="prio">Приоритет</label>
+                                <select name="prio" id="prio" class="form-control">
+                                    <option value="CRIT" {% if task.task_prio == 'CRIT' %}selected{% endif %}>Критический</option>
+                                    <option value="HIGH" {% if task.task_prio == 'HIGH' %}selected{% endif %}>Высокий</option>
+                                    <option value="LOW" {% if not task or task.task_prio == 'LOW' %}selected{% endif %}>Низкий</option>
+                                </select>
+                                <small class='text-muted'>Задайте приоритет</small>
+                            </div>
+                            <div class="form-group col-md-4">
+                                <label for="product">КПО</label>
+                                {% if task %}
+                                <input id='product' value='{{task.task_product}}' class="form-control" name='{{task.task_product_id}}' disabled></input>
+                                {% else %}
+                                <select name="product" id="product" class="form-control" required>
+                                    <option disabled selected hidden value="">Выберите КПО</option>
+                                    {% for product in products %}
+                                        <option value={{product.id}}>{{product}} {% if customers%}({{product.users.all|join:", "}}){% endif %}</option>
+                                    {% endfor %}
+                                </select>
+                                {% endif %}
+                                <small class='text-muted'>Выберите компонент</small>
+                                
+                            </div>
+                        </div>
+                        {% if customers%}
+                        <div class="form-row">
+                            <div class="form-group col-md-6">
+                                <select class="custom-select" name='customer' id="customerSelect">
+                                    <option value="" disabled selected hidden>Выберите клиента</option>
+
+                                    {% for customer in customers %}
+                                        <option value='{{customer.id}}'>{{customer}}</option>
+                                    {% endfor %}
+
+                                </select>
+                            </div>
+                            <div class="form-group col-md-6">
+                                <select class="custom-select" name='channel'>
+                                    <option value="" disabled selected hidden>Выберите канал обращения</option>                                    
+                                    <option value='PHN'>Телефон</option>                               
+                                    <option value='EML'>E-Mail</option>                               
+                                    <option value='MSG'>Мессенджер</option>                              
+
+                                </select>                            
+                            </div>
+                        </div>                  
+                        
+                        {% endif %}
+                        
+                        <div class="form-group">
+                            <label for="editor">Описание обращения</label>
+                            <textarea name="text" id="editor" required>{% if task %}{{task.task_text|safe}}{% endif %}</textarea>
+                            <small class='text-muted'>Опишите проблему как можно подробнее.</small>
+                        </div>
+                        <div class="form-group">
+                            <div id="dropZone" style="border:2px dashed #ced4da; border-radius:6px; padding:24px; text-align:center; cursor:pointer; transition:border-color .2s, background .2s;">
+                                <i class="fas fa-cloud-upload-alt fa-2x text-muted mb-2 d-block"></i>
+                                <span class="text-muted">Перетащите файлы сюда или <u>нажмите для выбора</u></span>
+                                <input type="file" id="fileInput" name="file" multiple hidden>
+                            </div>
+                            <div id="filePreview" class="mt-2"></div>
+                        </div>
+                        <button type="submit" class="btn btn-success">Отправить</button>
+                        {% if task %}
+                        <a href="{{ task.get_absolute_url }}" class="btn btn-outline-secondary ml-2">Отмена</a>
+                        {% endif %}
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let fileStore = new DataTransfer();
+        var dropZone = document.getElementById('dropZone');
+        var fileInput = document.getElementById('fileInput');
+
+        // Клик по зоне открывает диалог
+        dropZone.addEventListener('click', function() { fileInput.click(); });
+
+        // Подсветка при перетаскивании
+        dropZone.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            dropZone.style.borderColor = '#0088cc';
+            dropZone.style.background = '#f0f8ff';
+        });
+        dropZone.addEventListener('dragleave', function() {
+            dropZone.style.borderColor = '#ced4da';
+            dropZone.style.background = '';
+        });
+
+        // Бросаем файлы
+        dropZone.addEventListener('drop', function(e) {
+            e.preventDefault();
+            dropZone.style.borderColor = '#ced4da';
+            dropZone.style.background = '';
+            addFiles(e.dataTransfer.files);
+        });
+
+        fileInput.addEventListener('change', function() {
+            addFiles(this.files);
+        });
+
+        function addFiles(files) {
+            for (let file of files) {
+                fileStore.items.add(file);
+            }
+            fileInput.files = fileStore.files;
+            renderFiles();
+        }
+
+        function removeFile(index) {
+            let updated = new DataTransfer();
+            for (let i = 0; i < fileStore.files.length; i++) {
+                if (i !== index) updated.items.add(fileStore.files[i]);
+            }
+            fileStore = updated;
+            document.getElementById('fileInput').files = fileStore.files;
+            renderFiles();
+        }
+
+        function renderFiles() {
+            let preview = document.getElementById('filePreview');
+            preview.innerHTML = '';
+            for (let i = 0; i < fileStore.files.length; i++) {
+                let f = fileStore.files[i];
+                let div = document.createElement('div');
+                div.className = 'badge badge-light mr-1 mt-1 p-2';
+                div.innerHTML = f.name + ' <a href="#" onclick="removeFile(' + i + '); return false;" class="text-danger ml-1">✕</a>';
+                preview.appendChild(div);
+            }
+        }
+
+        var currentEditor = null;
+
+        $.extend(true, $.trumbowyg, {
+            plugins: {
+                imageUpload: {
+                    init: function(t) {
+                        t.addBtnDef('imageUpload', {
+                            fn: function() {
+                                t.saveRange();
+                                currentEditor = t;
+                                selectedImgFile = null;
+                                document.getElementById('imgDropLabel').textContent = 'Перетащите изображение или нажмите для выбора';
+                                document.getElementById('imgDropZone').style.borderColor = '#ced4da';
+                                document.getElementById('imgDropZone').style.background = '';
+                                document.getElementById('imgDropIcon').style.display = 'block';
+                                document.getElementById('imgPreviewGrid').style.display = 'none';
+                                document.getElementById('imgPreviewGrid').innerHTML = '';
+                                document.getElementById('imgDropLabel').textContent = 'Перетащите изображения или нажмите для выбора';
+                                document.getElementById('imgUploadConfirm').disabled = true;
+                                document.getElementById('imgUploadConfirm').textContent = 'Вставить';
+                                selectedImgFiles = [];
+                                $('#imageUploadModal').modal('show');
+                            },
+                            title: 'Вставить изображение',
+                            ico: 'insertImage'
+                        });
+                    }
+                }
+            }
+        });
+
+        $('#editor').trumbowyg({
+            btns: [
+                ['viewHTML'],
+                ['undo', 'redo'],
+                ['formatting'],
+                ['strong', 'em', 'del'],
+                ['superscript', 'subscript'],
+                ['justifyLeft', 'justifyCenter', 'justifyRight', 'justifyFull'],
+                ['unorderedList', 'orderedList'],
+                ['horizontalRule'],
+                ['imageUpload'],
+                ['removeformat'],
+                ['fullscreen']
+            ]
+        });
+
+        $(document).ready(function() {
+            var selectedImgFiles = [];
+            var imgDropZone = document.getElementById('imgDropZone');
+            var imgFileInput = document.getElementById('imgFileInput');
+
+            imgDropZone.addEventListener('click', function() { imgFileInput.click(); });
+            imgDropZone.addEventListener('dragover', function(e) {
+                e.preventDefault();
+                imgDropZone.style.borderColor = '#0088cc';
+                imgDropZone.style.background = '#f0f8ff';
+            });
+            imgDropZone.addEventListener('dragleave', function() {
+                imgDropZone.style.borderColor = selectedImgFile ? '#28a745' : '#ced4da';
+                imgDropZone.style.background = '';
+            });
+            imgDropZone.addEventListener('drop', function(e) {
+                e.preventDefault();
+                imgDropZone.style.background = '';
+                setImgFiles(e.dataTransfer.files);
+            });
+            imgFileInput.addEventListener('change', function() {
+                setImgFiles(this.files);
+            });
+
+            function setImgFiles(files) {
+                var newImages = Array.from(files).filter(function(f) { return f.type.startsWith('image/'); });
+                if (!newImages.length) return;
+                selectedImgFiles = selectedImgFiles.concat(newImages);
+
+                imgDropZone.style.borderColor = '#28a745';
+                document.getElementById('imgDropIcon').style.display = 'none';
+                document.getElementById('imgDropLabel').textContent = selectedImgFiles.length + ' файл(ов) выбрано';
+                document.getElementById('imgUploadConfirm').disabled = false;
+
+                var grid = document.getElementById('imgPreviewGrid');
+                grid.style.display = 'flex';
+                grid.style.flexWrap = 'wrap';
+                grid.style.gap = '6px';
+                grid.style.justifyContent = 'center';
+
+                newImages.forEach(function(file) {
+                    var reader = new FileReader();
+                    reader.onload = function(e) {
+                        var img = document.createElement('img');
+                        img.src = e.target.result;
+                        img.style.cssText = 'max-width:120px; max-height:90px; border-radius:6px; object-fit:cover;';
+                        grid.appendChild(img);
+                    };
+                    reader.readAsDataURL(file);
+                });
+            }
+
+            document.getElementById('imgUploadConfirm').addEventListener('click', function() {
+                if (!selectedImgFiles.length || !currentEditor) return;
+                var btn = this;
+                btn.disabled = true;
+                var total = selectedImgFiles.length;
+                var done = 0;
+
+                function uploadNext(index) {
+                    if (index >= total) {
+                        $('#imageUploadModal').modal('hide');
+                        return;
+                    }
+                    btn.textContent = 'Загрузка ' + (index + 1) + '/' + total + '...';
+                    var formData = new FormData();
+                    formData.append('file', selectedImgFiles[index]);
+                    $.ajax({
+                        url: '/tasks/upload-image',
+                        method: 'POST',
+                        data: formData,
+                        processData: false,
+                        contentType: false,
+                        success: function(response) {
+                            currentEditor.restoreRange();
+                            currentEditor.execCmd('insertImage', response.url, false, true);
+                            uploadNext(index + 1);
+                        },
+                        error: function() {
+                            btn.textContent = 'Ошибка';
+                            setTimeout(function() { btn.disabled = false; btn.textContent = 'Вставить'; }, 2000);
+                        }
+                    });
+                }
+                uploadNext(0);
+            });
+        });
+    </script>
+
+    <div class="modal fade" id="imageUploadModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header py-3" style="border-bottom:1px solid #dee2e6;">
+                    <h6 class="modal-title font-weight-bold mb-0">Вставить изображение</h6>
+                    <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+                </div>
+                <div class="modal-body">
+                    <div id="imgDropZone" style="border:2px dashed #ced4da; border-radius:6px; padding:20px; text-align:center; cursor:pointer; transition:all .2s;">
+                        <i class="fas fa-image fa-2x text-muted mb-2" id="imgDropIcon" style="display:block;"></i>
+                        <span class="text-muted" id="imgDropLabel">Перетащите изображения или нажмите для выбора</span>
+                        <input type="file" id="imgFileInput" accept="image/*" hidden multiple>
+                        <div id="imgPreviewGrid" style="display:none; margin-top:10px; display:none;"></div>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button class="btn btn-outline-secondary btn-sm" data-dismiss="modal">Отмена</button>
+                    <button class="btn btn-success btn-sm" id="imgUploadConfirm" disabled>Вставить</button>
+                </div>
+            </div>
+        </div>
+    </div>
+<script>
+    (function() {
+        var customerSelect = document.getElementById('customerSelect');
+        var productSelect  = document.getElementById('product');
+        if (!customerSelect || !productSelect) return;
+
+        // При загрузке — заказчик не выбран, КПО заблокировано
+        productSelect.innerHTML = '<option value="">Выберите КПО</option>';
+        productSelect.disabled = true;
+
+        customerSelect.addEventListener('change', function() {
+            var customerId = this.value;
+            if (!customerId) {
+                productSelect.innerHTML = '<option value="">Выберите КПО</option>';
+                productSelect.disabled = true;
+                return;
+            }
+            fetch('/tasks/products-for-customer?customer_id=' + customerId)
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    if (data.products.length === 0) {
+                        productSelect.innerHTML = '<option value="">Нет КПО для этого заказчика</option>';
+                        productSelect.disabled = true;
+                    } else {
+                        productSelect.innerHTML = '<option value="" disabled selected hidden>Выберите КПО</option>';
+                        data.products.forEach(function(p) {
+                            var opt = document.createElement('option');
+                            opt.value = p.id;
+                            opt.textContent = p.product_name;
+                            productSelect.appendChild(opt);
+                        });
+                        productSelect.disabled = false;
+                    }
+                });
+        });
+    })();
+</script>
+{% endblock content %}
+

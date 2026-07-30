@@ -1,0 +1,192 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block breadcrumbs %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-11 offset-md-1 mt_80">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item active" aria-current="page">Панель сотрудника</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+</div>
+{% endblock breadcrumbs %}
+
+{% block content %}
+<div class="container">
+
+    <!-- Приветствие -->
+    <div class="row">
+        <div class="col-md-12">
+            <div class="bg_white shadow-sm pd_20 mrgn_10 d-flex align-items-center justify-content-between">
+                <small class="text-muted">Здравствуйте, <strong>{{ user.get_full_name|default:user.username }}</strong></small>
+                <small class="text-muted">Всего заявок: <strong>{{ tasks.count }}</strong></small>
+            </div>
+        </div>
+    </div>
+
+    <!-- Фильтры -->
+    <div class="row">
+        <div class="col-md-12">
+            <div class="bg_white shadow-sm pd_20 mrgn_10">
+                <form method="GET" class="form-inline" style="gap:10px; flex-wrap:wrap;">
+                    <input type="text" name="search" class="form-control form-control-sm"
+                           placeholder="Поиск по теме..." value="{{ search_filter }}">
+                    <select name="status" class="form-control form-control-sm">
+                        <option value="">Все статусы</option>
+                        <option value="NEW" {% if status_filter == 'NEW' %}selected{% endif %}>Новый</option>
+                        <option value="WORK" {% if status_filter == 'WORK' %}selected{% endif %}>В работе</option>
+                        <option value="REQ" {% if status_filter == 'REQ' %}selected{% endif %}>Уточнение</option>
+                        <option value="ANS" {% if status_filter == 'ANS' %}selected{% endif %}>Уточнен</option>
+                        <option value="END" {% if status_filter == 'END' %}selected{% endif %}>Предоставлен</option>
+                        <option value="CLOSE" {% if status_filter == 'CLOSE' %}selected{% endif %}>Закрыт</option>
+                        <option value="REF" {% if status_filter == 'REF' %}selected{% endif %}>Отклонен</option>
+                    </select>
+                    <select name="prio" class="form-control form-control-sm">
+                        <option value="">Все приоритеты</option>
+                        <option value="CRIT" {% if prio_filter == 'CRIT' %}selected{% endif %}>Критический</option>
+                        <option value="HIGH" {% if prio_filter == 'HIGH' %}selected{% endif %}>Высокий</option>
+                        <option value="LOW" {% if prio_filter == 'LOW' %}selected{% endif %}>Низкий</option>
+                    </select>
+                    <a href="?" id="dashResetBtn" class="btn btn-sm btn-outline-secondary">Сбросить</a>
+                </form>
+                <script>
+                    var dashForm = document.querySelector('.bg_white form');
+                    var dashResetBtn = document.getElementById('dashResetBtn');
+                    var dashDebounce = null;
+                    var dashSearch = dashForm.querySelector('input[name="search"]');
+                    var dashStatus = dashForm.querySelector('select[name="status"]');
+                    var dashPrio = dashForm.querySelector('select[name="prio"]');
+
+                    function updateDashResetBtn() {
+                        var active = !!(dashSearch.value.trim() || dashStatus.value || dashPrio.value);
+                        dashResetBtn.classList.toggle('disabled', !active);
+                        if (active) {
+                            dashResetBtn.removeAttribute('aria-disabled');
+                            dashResetBtn.removeAttribute('tabindex');
+                        } else {
+                            dashResetBtn.setAttribute('aria-disabled', 'true');
+                            dashResetBtn.setAttribute('tabindex', '-1');
+                        }
+                    }
+
+                    dashResetBtn.addEventListener('click', function(e) {
+                        if (dashResetBtn.classList.contains('disabled')) e.preventDefault();
+                    });
+                    dashStatus.addEventListener('change', function() { dashForm.submit(); });
+                    dashPrio.addEventListener('change', function() { dashForm.submit(); });
+                    dashSearch.addEventListener('input', function() {
+                        updateDashResetBtn();
+                        clearTimeout(dashDebounce);
+                        dashDebounce = setTimeout(function() { dashForm.submit(); }, 500);
+                    });
+                    updateDashResetBtn();
+                </script>
+            </div>
+        </div>
+    </div>
+
+    <!-- Уведомления о новых назначениях -->
+    {% if newly_assigned %}
+    <div class="row">
+        <div class="col-md-12">
+            <div class="pd_20 mrgn_10" style="background:#e8f4fd; border-radius:6px; border-left:4px solid #2563eb;">
+                <div class="d-flex align-items-center mb-2">
+                    <i class="fas fa-bell text-primary mr-2"></i>
+                    <strong style="font-size:.9rem;">Вам поручены новые обращения:</strong>
+                </div>
+                {% for task in newly_assigned %}
+                <div class="d-flex align-items-center mb-1" style="font-size:.88rem;">
+                    <i class="fas fa-circle text-primary mr-2" style="font-size:.4rem; flex-shrink:0;"></i>
+                    <a href="{{ task.get_absolute_url }}" class="mr-2 font-weight-bold">{{ task.task_subject }}</a>
+                    <span class="text-muted mr-2">— {{ task.task_product|default:"без КПО" }}</span>
+                    <span class="text-muted">— заказчик: {{ task.task_customer.get_full_name|default:task.task_customer }}</span>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Таблица заявок -->
+    <div class="row">
+        <div class="col-md-12">
+            <div class="bg_white shadow-sm pd_20 mrgn_10">
+                <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th class="table__col_w_15">Дата создания</th>
+                            <th class="table__col_w_10">Приоритет</th>
+                            <th class="table__col_w_10">Статус</th>
+                            <th class="table__col_w_20">Заказчик</th>
+                            <th>Тема и описание</th>
+                            <th class="table__col_w_15">Исполнитель</th>
+                            <th class="table__col_w_5"><i class="fas fa-paperclip" title="Вложения"></i></th>
+                            <th class="table__col_w_5"><i class="far fa-comment" title="Комментарии"></i></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for task in tasks %}
+                        <tr data-href="{{ task.get_absolute_url }}">
+                            <td class="text-muted" style="font-size:.85em;">{{ task.task_createdate|date:"d.m.Y H:i" }}</td>
+                            <td>
+                                {% if task.task_prio == 'CRIT' %}
+                                    <span class="badge badge-danger">Критический</span>
+                                {% elif task.task_prio == 'HIGH' %}
+                                    <span class="badge badge-warning">Высокий</span>
+                                {% else %}
+                                    <span class="badge badge-info">Низкий</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if task.task_status == 'NEW' %}
+                                    <span class="badge badge-success">Новый</span>
+                                {% elif task.task_status == 'CLOSE' %}
+                                    <span class="badge badge-dark">Закрыт</span>
+                                {% elif task.task_status == 'REQ' %}
+                                    <span class="badge badge-info">Уточнение</span>
+                                {% elif task.task_status == 'ANS' %}
+                                    <span class="badge badge-info">Уточнен</span>
+                                {% elif task.task_status == 'END' %}
+                                    <span class="badge badge-warning">Предоставлен</span>
+                                {% elif task.task_status == 'REF' %}
+                                    <span class="badge badge-danger">Отклонен</span>
+                                {% else %}
+                                    <span class="badge badge-secondary">В работе</span>
+                                {% endif %}
+                            </td>
+                            <td style="font-size:.9em;">{{ task.task_customer.get_full_name|default:task.task_customer }}</td>
+                            <td>
+                                <a href="{{ task.get_absolute_url }}">{{ task.task_subject }}</a>
+                                <div class="text-muted" style="font-size:.8em; margin-top:2px;">
+                                    {{ task.task_text|striptags|truncatechars:80 }}
+                                </div>
+                            </td>
+                            <td style="font-size:.85em;">
+                                {% if task.task_executor %}
+                                    {{ task.task_executor.get_full_name|default:task.task_executor }}
+                                {% else %}
+                                    <span class="text-muted">—</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-center">{{ task.taskfiles_set.count }}</td>
+                            <td class="text-center">{{ task.taskcomment_set.count }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="8" class="text-center text-muted py-4">Нет заявок</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                </div>
+                {% include "includes/pagination.html" with page_obj=tasks page_param="page" %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock content %}

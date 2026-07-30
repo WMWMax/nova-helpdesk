@@ -1,0 +1,224 @@
+{% extends "base.html" %}
+{% load static %}
+{% load profile_tags %}
+
+{% block breadcrumbs %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-11 offset-md-1 mt_80">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="/"><i class="fas fa-home"></i></a></li>
+                    <li class="breadcrumb-item active">Сообщения</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+</div>
+{% endblock breadcrumbs %}
+
+{% block content %}
+<style>
+    .dialog-row {
+        padding: 10px 6px;
+        text-decoration: none;
+        color: inherit;
+        border-bottom: 1px solid #f0f1f3;
+        transition: background .1s ease-in-out;
+    }
+    .dialog-row:hover, .dialog-row:focus {
+        background: #f5f6f8;
+        text-decoration: none;
+        color: inherit;
+    }
+    #dialogList a.dialog-row:last-child { border-bottom: none; }
+</style>
+<div class="container mt_20">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="bg_white shadow-sm pd_20" style="border-radius:6px;">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="mb-0"><i class="far fa-comments mr-2"></i>Сообщения</h5>
+                    {% if available_users %}
+                    <button class="btn btn-sm btn-outline-primary" type="button"
+                            data-toggle="collapse" data-target="#newChatPanel">
+                        <i class="fas fa-edit mr-1"></i>Написать
+                    </button>
+                    {% endif %}
+                </div>
+
+                {% if available_users %}
+                <div class="collapse mb-3" id="newChatPanel">
+                    <div class="p-3" style="background:#f8f9fa; border-radius:6px; border:1px solid #dee2e6;">
+                        {% if user.is_staff %}
+                        <small class="text-muted d-block mb-2">Выберите пользователя:</small>
+                        {% else %}
+                        <small class="text-muted d-block mb-2">Контакты сотрудников — выберите, чтобы написать:</small>
+                        {% endif %}
+                        <div class="d-flex" style="gap:8px;">
+                            <select id="newChatUser" class="form-control form-control-sm">
+                                <option value="" disabled selected hidden>— выберите собеседника —</option>
+                                {% for u in available_users %}
+                                <option value="{{ u.id }}">
+                                    {{ u.get_full_name|default:u.username }}
+                                    {% if u.is_superuser %} (Администратор)
+                                    {% elif u.is_staff %} (Сотрудник)
+                                    {% endif %}
+                                </option>
+                                {% endfor %}
+                            </select>
+                            <button id="newChatBtn" class="btn btn-primary btn-sm px-3" onclick="startNewChat()" disabled>
+                                Написать
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
+                {% if dialogs %}
+                    <div id="dialogList">
+                    {% for d in dialogs %}
+                        <a href="/chat/{{ d.other_user.id }}/"
+                           class="d-flex align-items-center dialog-row"
+                           data-user-id="{{ d.other_user.id }}">
+
+                            {# Аватар #}
+                            {% get_avatar_url d.other_user as av %}
+                            {% if av %}
+                                <img src="{{ av }}" class="rounded-circle mr-3 flex-shrink-0"
+                                     style="width:48px; height:48px; object-fit:cover;">
+                            {% else %}
+                                <div class="rounded-circle d-flex align-items-center justify-content-center mr-3 flex-shrink-0"
+                                     style="width:48px; height:48px; background:#6c757d; color:#fff; font-weight:600; font-size:1.1rem;">
+                                    {{ d.other_user.get_full_name|default:d.other_user.username|slice:":1"|upper }}
+                                </div>
+                            {% endif %}
+
+                            <div class="flex-grow-1 overflow-hidden">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <strong style="font-size:.95rem;">
+                                        {{ d.other_user.get_full_name|default:d.other_user.username }}
+                                    </strong>
+                                    <small class="text-muted ml-2 flex-shrink-0 dialog-time">
+                                        {% if d.last_msg %}{{ d.last_msg.timestamp|date:"d.m H:i" }}{% endif %}
+                                    </small>
+                                </div>
+                                <div class="d-flex justify-content-between align-items-center mt-1">
+                                    <small class="text-muted text-truncate message-preview" style="max-width:220px;">
+                                        {% if d.last_msg %}
+                                            {% if d.last_msg.sender == user %}
+                                                {% if d.last_msg.is_read %}
+                                                <span class="msg-check" style="color:#53bdeb; letter-spacing:-2px;">✓✓</span>
+                                                {% else %}
+                                                <span class="msg-check" style="color:#adb5bd;">✓</span>
+                                                {% endif %}
+                                                <span class="text-secondary">Вы: </span>
+                                            {% endif %}
+                                            {% if d.last_msg.body %}{{ d.last_msg.body|truncatechars:60 }}{% elif d.last_msg.file %}📎 Вложение{% endif %}
+                                        {% else %}
+                                            <em>Нет сообщений</em>
+                                        {% endif %}
+                                    </small>
+                                    <span class="unread-badge-wrap ml-2 flex-shrink-0">
+                                        {% if d.unread %}
+                                        <span class="badge badge-danger unread-badge">{{ d.unread }}</span>
+                                        {% endif %}
+                                    </span>
+                                </div>
+                            </div>
+                        </a>
+                    {% endfor %}
+                    </div>
+
+                    <div id="emptyPlaceholder" style="display:none;" class="text-center text-muted py-5">
+                        <i class="far fa-comment-dots fa-3x mb-3"></i>
+                        <p>У вас пока нет диалогов.</p>
+                    </div>
+                {% else %}
+                    <div id="emptyPlaceholder" class="text-center text-muted py-5">
+                        <i class="far fa-comment-dots fa-3x mb-3"></i>
+                        <p>У вас пока нет диалогов.<br>
+                        Напишите кому-нибудь через страницу его профиля.</p>
+                    </div>
+                    <div id="dialogList"></div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function startNewChat() {
+    var sel = document.getElementById('newChatUser');
+    if (!sel || !sel.value) return;
+    window.location.href = '/chat/' + sel.value + '/';
+}
+
+var newChatSelect = document.getElementById('newChatUser');
+var newChatBtn = document.getElementById('newChatBtn');
+if (newChatSelect && newChatBtn) {
+    newChatSelect.addEventListener('change', function() {
+        newChatBtn.disabled = !this.value;
+    });
+}
+
+// Перезагрузить страницу, если браузер достал её из кэша (кнопка «Назад»)
+// Это нужно, чтобы бейджик всегда отражал актуальное состояние
+window.addEventListener('pageshow', function(e) {
+    if (e.persisted) {
+        window.location.reload();
+    }
+});
+
+// Обработчик события от глобального WebSocket уведомлений (задан в base.html)
+document.addEventListener('chatNotification', function(e) {
+    var data = e.detail;
+    var senderId = String(data.sender_id);
+    var preview  = data.preview;
+
+    var list = document.getElementById('dialogList');
+    var row  = list ? list.querySelector('[data-user-id="' + senderId + '"]') : null;
+
+    if (row) {
+        // 1. Обновить счётчик непрочитанных в строке диалога
+        var badgeWrap = row.querySelector('.unread-badge-wrap');
+        var badge     = row.querySelector('.unread-badge');
+        if (badge) {
+            badge.textContent = (parseInt(badge.textContent) || 0) + 1;
+        } else if (badgeWrap) {
+            var nb = document.createElement('span');
+            nb.className = 'badge badge-danger unread-badge';
+            nb.textContent = '1';
+            badgeWrap.appendChild(nb);
+        }
+
+        // 2. Обновить текст последнего сообщения
+        var previewEl = row.querySelector('.message-preview');
+        if (previewEl) {
+            previewEl.textContent = preview.length > 60 ? preview.substring(0, 60) + '…' : preview;
+        }
+
+        // 3. Обновить время
+        var timeEl = row.querySelector('.dialog-time');
+        if (timeEl) {
+            var now = new Date();
+            var hh = String(now.getHours()).padStart(2, '0');
+            var mm = String(now.getMinutes()).padStart(2, '0');
+            var dd = String(now.getDate()).padStart(2, '0');
+            var mo = String(now.getMonth() + 1).padStart(2, '0');
+            timeEl.textContent = dd + '.' + mo + ' ' + hh + ':' + mm;
+        }
+
+        // 4. Поднять диалог в самый верх списка (как в Телеграме)
+        if (list && row.parentNode === list) {
+            list.insertBefore(row, list.firstChild);
+        }
+
+    } else {
+        // Диалог с этим человеком ещё не существует в списке — добавим его
+        // Проще всего перезагрузить, чтобы сервер сформировал полную строку
+        window.location.reload();
+    }
+});
+</script>
+{% endblock content %}

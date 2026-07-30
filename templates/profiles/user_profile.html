@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% load static %}
+{% load profile_tags %}
+
+{% block breadcrumbs %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-11 offset-md-1 mt_80">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="/"><i class="fas fa-home"></i></a></li>
+                    <li class="breadcrumb-item active">Профиль пользователя</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+</div>
+{% endblock breadcrumbs %}
+
+{% block content %}
+<div class="container">
+    <a href="javascript:history.back()" class="btn btn-sm btn-outline-secondary mb-2"><i class="fas fa-arrow-left"></i> Назад</a>
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="bg_white shadow-sm pd_20 mrgn_10" style="border-radius:6px;">
+
+                <div class="text-center mb-4">
+                    {% get_avatar_url target_user as avatar_url %}
+                    {% if avatar_url %}
+                        <img src="{{ avatar_url }}" class="rounded-circle mb-3"
+                             style="width:100px; height:100px; object-fit:cover;">
+                    {% else %}
+                        <div class="rounded-circle bg-secondary d-inline-flex align-items-center justify-content-center mb-3"
+                             style="width:100px; height:100px;">
+                            <span style="font-size:2rem; color:#fff; font-weight:600;">
+                                {{ target_user.get_full_name|default:target_user.username|slice:":1"|upper }}
+                            </span>
+                        </div>
+                    {% endif %}
+
+                    <h5 class="mb-0">{{ target_user.get_full_name|default:target_user.username }}</h5>
+                    <small class="text-muted">
+                        {% if target_user.is_superuser %}Администратор
+                        {% elif target_user.is_staff %}Сотрудник
+                        {% else %}Заказчик{% endif %}
+                    </small>
+                </div>
+
+                <hr>
+
+                <div class="px-2">
+                    {% if target_profile.phone and target_profile.show_phone %}
+                    <div class="d-flex align-items-center mb-2">
+                        <i class="fas fa-phone text-muted mr-3" style="width:16px;"></i>
+                        <span>{{ target_profile.phone }}</span>
+                    </div>
+                    {% endif %}
+
+                    {% if target_profile.messenger and target_profile.show_messenger %}
+                    <div class="d-flex align-items-center mb-2">
+                        <i class="fas fa-comment-dots text-muted mr-3" style="width:16px;"></i>
+                        <span>{{ target_profile.messenger }}</span>
+                    </div>
+                    {% endif %}
+
+                    {% if target_profile.extra_email and target_profile.show_extra_email %}
+                    <div class="d-flex align-items-center mb-2">
+                        <i class="fas fa-envelope text-muted mr-3" style="width:16px;"></i>
+                        <span>{{ target_profile.extra_email }}</span>
+                    </div>
+                    {% endif %}
+
+                    {% if not target_profile.phone and not target_profile.messenger and not target_profile.extra_email %}
+                    <p class="text-muted text-center">Контактная информация не указана</p>
+                    {% endif %}
+                </div>
+
+                {% if target_user != user %}
+                <div class="text-center mt-3">
+                    <a href="/chat/{{ target_user.id }}/" class="btn btn-dark btn-sm px-4">
+                        <i class="far fa-comment-dots mr-1"></i> Написать
+                    </a>
+                </div>
+                {% endif %}
+
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock content %}

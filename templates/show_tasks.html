@@ -1,0 +1,285 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block extrascripts %}
+<link rel="stylesheet" href="{% static 'css/flatpickr.min.css' %}">
+<script src="{% static 'js/flatpickr.min.js' %}"></script>
+<script src="{% static 'js/flatpickr.ru.js' %}"></script>
+<style>
+    /* Убираем светлую обводку на кнопках фильтра во всех состояниях */
+    .filter-card .btn-outline-secondary,
+    .filter-card .btn-outline-secondary:focus,
+    .filter-card .btn-outline-secondary:active,
+    .filter-card .btn-outline-secondary.active,
+    .filter-card .btn-outline-secondary:focus:active,
+    .filter-card .btn-outline-secondary:not(:disabled):not(.disabled):active,
+    .filter-card .btn-outline-secondary:not(:disabled):not(.disabled).active,
+    .filter-card .btn-outline-secondary:not(:disabled):not(.disabled).active:focus { outline: none !important; box-shadow: none !important; }
+</style>
+{% endblock %}
+
+{% block breadcrumbs %}
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-md-11 offset-md-1 mt_80">
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb">
+                        <li class="breadcrumb-item"><a href="/"><i class="fas fa-home"></i></a></li>    
+                        <li class="breadcrumb-item active">Все заявки</li>                        
+                    </ol>
+                </nav>
+            </div>
+        </div>
+    </div>
+{% endblock breadcrumbs %}
+
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="filter-card pd_20 mrgn_10" style="background:#f4f6f8; border-radius:6px;">
+                <form action="/tasks/show/" method="GET">
+                    <div class="form-row align-items-end mb-2">
+                        <div class="form-group col-md-12 mb-2">
+                            <small class="d-block mb-1" style="font-size:.7rem; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:#495057;">Статус</small>
+                            <div class="btn-group btn-group-sm flex-wrap" data-toggle="buttons">
+                                <label class="btn btn-outline-secondary {% if 'NEW' in selected_statuses %}active{% endif %}">
+                                    <input type="checkbox" name="status" value="NEW" autocomplete="off" {% if 'NEW' in selected_statuses %}checked{% endif %}> Новый
+                                </label>
+                                <label class="btn btn-outline-secondary {% if 'WORK' in selected_statuses %}active{% endif %}">
+                                    <input type="checkbox" name="status" value="WORK" autocomplete="off" {% if 'WORK' in selected_statuses %}checked{% endif %}> В работе
+                                </label>
+                                <label class="btn btn-outline-secondary {% if 'REQ' in selected_statuses %}active{% endif %}">
+                                    <input type="checkbox" name="status" value="REQ" autocomplete="off" {% if 'REQ' in selected_statuses %}checked{% endif %}> Уточнение
+                                </label>
+                                <label class="btn btn-outline-secondary {% if 'ANS' in selected_statuses %}active{% endif %}">
+                                    <input type="checkbox" name="status" value="ANS" autocomplete="off" {% if 'ANS' in selected_statuses %}checked{% endif %}> Уточнен
+                                </label>
+                                <label class="btn btn-outline-secondary {% if 'END' in selected_statuses %}active{% endif %}">
+                                    <input type="checkbox" name="status" value="END" autocomplete="off" {% if 'END' in selected_statuses %}checked{% endif %}> Предоставлен
+                                </label>
+                                <label class="btn btn-outline-secondary {% if 'CLOSE' in selected_statuses %}active{% endif %}">
+                                    <input type="checkbox" name="status" value="CLOSE" autocomplete="off" {% if 'CLOSE' in selected_statuses %}checked{% endif %}> Закрыт
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-row align-items-start">
+                        <div class="form-group col-md-4 mb-2">
+                            <small class="d-block mb-1" style="font-size:.7rem; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:#495057;">Приоритет</small>
+                            <div class="btn-group btn-group-sm flex-wrap" data-toggle="buttons">
+                                <label class="btn btn-outline-secondary {% if 'CRIT' in selected_prios %}active{% endif %}">
+                                    <input type="checkbox" name="prio" value="CRIT" autocomplete="off" {% if 'CRIT' in selected_prios %}checked{% endif %}> Критический
+                                </label>
+                                <label class="btn btn-outline-secondary {% if 'HIGH' in selected_prios %}active{% endif %}">
+                                    <input type="checkbox" name="prio" value="HIGH" autocomplete="off" {% if 'HIGH' in selected_prios %}checked{% endif %}> Высокий
+                                </label>
+                                <label class="btn btn-outline-secondary {% if 'LOW' in selected_prios %}active{% endif %}">
+                                    <input type="checkbox" name="prio" value="LOW" autocomplete="off" {% if 'LOW' in selected_prios %}checked{% endif %}> Низкий
+                                </label>
+                            </div>
+                        </div>
+                        <div class="form-group col-md-3 col-lg-3 mb-2">
+                            <small class="d-block mb-1" style="font-size:.7rem; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:#495057;">Дата создания</small>
+                            <div class="input-group input-group-sm">
+                                <input type="text" class="form-control date-picker" name="date_from" placeholder="дд.мм.гггг" value="{{ selected_date_from }}" autocomplete="off">
+                                <div class="input-group-prepend input-group-append"><span class="input-group-text px-1">—</span></div>
+                                <input type="text" class="form-control date-picker" name="date_to" placeholder="дд.мм.гггг" value="{{ selected_date_to }}" autocomplete="off">
+                            </div>
+                        </div>
+                        <div class="form-group col-md-{% if user.is_staff %}3{% else %}5{% endif %} mb-2">
+                            <small class="d-block mb-1" style="font-size:.7rem; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:#495057;">Тема</small>
+                            <input type="text" class="form-control form-control-sm" placeholder="Поиск по теме..." name="subject" value="{{ selected_subject }}">
+                        </div>
+                        {% if user.is_staff %}
+                        <div class="form-group col-md-3 mb-2">
+                            <small class="d-block mb-1" style="font-size:.7rem; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:#495057;">Исполнитель</small>
+                            <input type="text" class="form-control form-control-sm" placeholder="Имя или логин..." name="executor" value="{{ selected_executor }}">
+                        </div>
+                        {% endif %}
+                    </div>
+                    <div class="form-row">
+                        <div class="col-12 text-right">
+                            <a href="/tasks/show/" id="resetBtn" class="btn btn-outline-secondary btn-sm"><i class="fas fa-times"></i> Сбросить</a>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    <script>
+        (function() {
+            var form = document.querySelector('.filter-card form');
+            var resetBtn = document.getElementById('resetBtn');
+
+            function hasActiveFilters() {
+                var fields = form.querySelectorAll('input[type="checkbox"], input[type="text"]');
+                for (var i = 0; i < fields.length; i++) {
+                    var el = fields[i];
+                    if (el.type === 'checkbox') {
+                        if (el.checked) return true;
+                    } else if (el.value.trim() !== '') {
+                        return true;
+                    }
+                }
+                return false;
+            }
+
+            function updateResetBtn() {
+                var active = hasActiveFilters();
+                resetBtn.classList.toggle('disabled', !active);
+                if (active) {
+                    resetBtn.removeAttribute('aria-disabled');
+                    resetBtn.removeAttribute('tabindex');
+                } else {
+                    resetBtn.setAttribute('aria-disabled', 'true');
+                    resetBtn.setAttribute('tabindex', '-1');
+                }
+            }
+
+            resetBtn.addEventListener('click', function(e) {
+                if (resetBtn.classList.contains('disabled')) e.preventDefault();
+            });
+            form.addEventListener('change', updateResetBtn);
+            form.addEventListener('input', updateResetBtn);
+            updateResetBtn();
+        })();
+    </script>
+</div>
+<div class="container">
+    <div class="row">
+        <div class="col-md-12">
+                <div class="table_card bg_white pd_20 shadow-sm mrgn_10">
+
+                    <ul class="nav nav-tabs mb-3">
+                        <li class="nav-item">
+                            <a class="nav-link active" data-toggle="tab" href="#tab-active">
+                                Активные <span class="badge badge-secondary ml-1">{{ active_count }}</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" data-toggle="tab" href="#tab-completed">
+                                Завершённые <span class="badge badge-secondary ml-1">{{ completed_count }}</span>
+                            </a>
+                        </li>
+                    </ul>
+
+                    {% with active_tasks as task_list %}
+                    <div class="tab-content">
+                        <div class="tab-pane fade show active" id="tab-active">
+                            <div class="table-responsive">
+                            <table class="table table-hover">
+                                <tr>
+                                    <th class="table__col_w_20">Дата</th>
+                                    <th class="table__col_w_5"><i class="far fa-comment"></i></th>
+                                    <th class="table__col_w_5"><i class="fas fa-paperclip"></i></th>
+                                    {% if user.is_staff %}<th class="table__col_w_5">Заказчик</th><th class="table__col_w_10">Исполнитель</th>{% endif %}
+                                    <th class="table__col_w_5">Статус</th>
+                                    <th class="table__col_w_5">Приоритет</th>
+                                    <th>Тема</th>
+                                </tr>
+                                {% for task in active_page %}
+                                <tr class="text-center" data-href="{{ task.get_absolute_url }}">
+                                    <td class='text-left'>{{ task.task_createdate|date:"d.m.Y H:i" }}</td>
+                                    <td class='text-left'>{{ task.taskcomment_set.count }}</td>
+                                    <td class='text-left'>{{ task.taskfiles_set.count }}</td>
+                                    {% if user.is_staff %}
+                                    <td class='text-left'><a href="/profile/{{ task.task_customer.id }}/">{{ task.task_customer }}</a></td>
+                                    <td class='text-left'>{% if task.task_executor == None %}<a href="{{ task.get_absolute_url }}/take" title='Стать исполнителем'><i class="far fa-handshake"></i></a>{% else %}<a href="/profile/{{ task.task_executor.id }}/">{{ task.task_executor.get_full_name }}</a>{% endif %}</td>
+                                    {% endif %}
+                                    <td class='text-left'>{% if task.task_status == 'NEW' %}<span class="badge badge-success">Новый</span>{% elif task.task_status == 'REQ' %}<span class="badge badge-info">На уточнении</span>{% elif task.task_status == 'ANS' %}<span class="badge badge-info">Уточнен</span>{% else %}<span class="badge badge-secondary">В работе</span>{% endif %}</td>
+                                    <td class='text-left'>{% if task.task_prio == 'CRIT' %}<span class="badge badge-danger">Критический</span>{% elif task.task_prio == 'HIGH' %}<span class="badge badge-warning">Высокий</span>{% else %}<span class="badge badge-info">Низкий</span>{% endif %}</td>
+                                    <td class='text-left'><a href="{{ task.get_absolute_url }}">{{ task.task_subject }}</a></td>
+                                </tr>
+                                {% empty %}
+                                <tr class="text-center"><td colspan='9' class="text-muted py-3">Нет активных заявок</td></tr>
+                                {% endfor %}
+                            </table>
+                            </div>
+                            {% include "includes/pagination.html" with page_obj=active_page page_param="page_active" %}
+                        </div>
+
+                        <div class="tab-pane fade" id="tab-completed">
+                            <div class="table-responsive">
+                            <table class="table table-hover">
+                                <tr>
+                                    <th class="table__col_w_20">Дата</th>
+                                    <th class="table__col_w_5"><i class="far fa-comment"></i></th>
+                                    <th class="table__col_w_5"><i class="fas fa-paperclip"></i></th>
+                                    {% if user.is_staff %}<th class="table__col_w_5">Заказчик</th><th class="table__col_w_10">Исполнитель</th>{% endif %}
+                                    <th class="table__col_w_5">Статус</th>
+                                    <th class="table__col_w_5">Приоритет</th>
+                                    <th>Тема</th>
+                                </tr>
+                                {% for task in completed_page %}
+                                <tr class="text-center" data-href="{{ task.get_absolute_url }}">
+                                    <td class='text-left'>{{ task.task_createdate|date:"d.m.Y H:i" }}</td>
+                                    <td class='text-left'>{{ task.taskcomment_set.count }}</td>
+                                    <td class='text-left'>{{ task.taskfiles_set.count }}</td>
+                                    {% if user.is_staff %}
+                                    <td class='text-left'><a href="/profile/{{ task.task_customer.id }}/">{{ task.task_customer }}</a></td>
+                                    <td class='text-left'>{% if task.task_executor %}<a href="/profile/{{ task.task_executor.id }}/">{{ task.task_executor.get_full_name }}</a>{% else %}—{% endif %}</td>
+                                    {% endif %}
+                                    <td class='text-left'>{% if task.task_status == 'END' %}<span class="badge badge-warning">Предоставлен</span>{% elif task.task_status == 'CLOSE' %}<span class="badge badge-dark">Закрыт</span>{% else %}<span class="badge badge-secondary">Отклонён</span>{% endif %}</td>
+                                    <td class='text-left'>{% if task.task_prio == 'CRIT' %}<span class="badge badge-danger">Критический</span>{% elif task.task_prio == 'HIGH' %}<span class="badge badge-warning">Высокий</span>{% else %}<span class="badge badge-info">Низкий</span>{% endif %}</td>
+                                    <td class='text-left'><a href="{{ task.get_absolute_url }}">{{ task.task_subject }}</a></td>
+                                </tr>
+                                {% empty %}
+                                <tr class="text-center"><td colspan='9' class="text-muted py-3">Нет завершённых заявок</td></tr>
+                                {% endfor %}
+                            </table>
+                            </div>
+                            {% include "includes/pagination.html" with page_obj=completed_page page_param="page_completed" %}
+                        </div>
+                    </div>
+                    {% endwith %}
+
+                </div>                
+        </div>
+    </div>
+</div>
+<script>
+    var filterForm = document.querySelector('.filter-card form');
+    var textDebounce = null;
+
+    // Чекбоксы — применяем сразу при клике
+    document.querySelectorAll('.filter-card input[type="checkbox"]').forEach(function(cb) {
+        cb.addEventListener('change', function() { filterForm.submit(); });
+    });
+
+    // Текстовые поля — применяем через 500мс после последнего символа
+    document.querySelectorAll('.filter-card input[type="text"]').forEach(function(inp) {
+        inp.addEventListener('input', function() {
+            clearTimeout(textDebounce);
+            textDebounce = setTimeout(function() { filterForm.submit(); }, 500);
+        });
+    });
+
+    // Пагинация перезагружает страницу — после перезагрузки открываем ту вкладку,
+    // чья страница указана в адресе, а не «Активные» по умолчанию
+    if (new URLSearchParams(window.location.search).has('page_completed')) {
+        document.querySelectorAll('.nav-tabs .nav-link').forEach(function(el) { el.classList.remove('active'); });
+        document.querySelectorAll('.tab-content .tab-pane').forEach(function(el) { el.classList.remove('show', 'active'); });
+        var completedTabLink = document.querySelector('.nav-tabs a[href="#tab-completed"]');
+        var completedPane = document.getElementById('tab-completed');
+        if (completedTabLink) completedTabLink.classList.add('active');
+        if (completedPane) completedPane.classList.add('show', 'active');
+    }
+</script>
+<script>
+    flatpickr(".date-picker", {
+        locale: "ru",
+        dateFormat: "Y-m-d",
+        altInput: true,
+        altFormat: "d.m.Y",
+        allowInput: false,
+        minDate: "2000-01-01",
+        maxDate: "2099-12-31",
+        onReady: function(selectedDates, dateStr, instance) {
+            instance.altInput.readOnly = true;
+        }
+    });
+</script>
+{% endblock content %}
+

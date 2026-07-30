@@ -1,0 +1,210 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block breadcrumbs %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-11 offset-md-1 mt_80">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="/"><i class="fas fa-home"></i></a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Помощь</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+</div>
+{% endblock breadcrumbs %}
+
+{% block content %}
+<style>
+    .help-card img { max-width:100%; border-radius:6px; box-shadow:0 1px 4px rgba(0,0,0,.15); margin:10px 0; display:block; cursor:zoom-in; }
+    .help-card { scroll-margin-top:90px; }
+</style>
+<div class="container">
+
+    <div class="row">
+        <div class="col-md-3">
+            <!-- Навигация по разделам -->
+            <div class="bg_white shadow-sm pd_20 mrgn_10" style="position:sticky; top:80px;">
+                <p class="text-muted mb-2" style="font-size:.8em; text-transform:uppercase; letter-spacing:.05em;">Разделы</p>
+                <ul class="list-unstyled" style="font-size:.9em;">
+                    <li class="mb-1"><a href="#auth" class="text-dark">Авторизация</a></li>
+                    <li class="mb-1"><a href="#dashboard" class="text-dark">Главная страница</a></li>
+                    <li class="mb-1"><a href="#create" class="text-dark">Создать заявку</a></li>
+                    <li class="mb-1"><a href="#view" class="text-dark">Просмотр заявки</a></li>
+                    <li class="mb-1"><a href="#all-tasks" class="text-dark">Все заявки</a></li>
+                    <li class="mb-1"><a href="#chat" class="text-dark">Чат</a></li>
+                    <li class="mb-1"><a href="#profile" class="text-dark">Профиль</a></li>
+                    <li class="mb-1"><a href="#logout" class="text-dark">Выход</a></li>
+                    {% if user.is_staff %}
+                    <li class="mb-1"><a href="#staff" class="text-dark">Для сотрудников</a></li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+
+        <div class="col-md-9">
+
+            <!-- Авторизация -->
+            <div class="bg_white shadow-sm pd_20 mrgn_10 help-card" id="auth">
+                <h5 class="mb-3"><i class="fas fa-sign-in-alt text-muted mr-2"></i>Страница авторизации</h5>
+                <p>Для того, чтобы войти в аккаунт веб-ресурса Nova, необходимо заполнить строки «Имя пользователя» и «Пароль» соответствующими данными (логином и паролем), предоставленными пользователю. Обратите внимание: не оставляйте лишние пробелы перед или после введённых пароля или логина.</p>
+                <p>После заполнения полей нажмите на кнопку «Войти».</p>
+                <img src="{% static 'images/help/image1.png' %}" alt="Страница авторизации">
+            </div>
+
+            <!-- Главная страница -->
+            <div class="bg_white shadow-sm pd_20 mrgn_10 help-card" id="dashboard">
+                <h5 class="mb-3"><i class="fas fa-th-large text-muted mr-2"></i>Главная страница</h5>
+                <p>После входа в аккаунт пользователя встречает главная страница ресурса — Пользовательская панель. На ней указана статистика по обращениям пользователя:</p>
+                <ul style="line-height:2;">
+                    <li>счётчик задач в работе;</li>
+                    <li>счётчик новых задач;</li>
+                    <li>приобретённые продукты (КПО);</li>
+                    <li>таблица со всеми заявками и информацией по ним: дата создания, приоритет, статус, тема и описание, дата принятия в работу, число комментариев и вложений, действия.</li>
+                </ul>
+                <img src="{% static 'images/help/image2.png' %}" alt="Пользовательская панель">
+                <p class="mt-3">Пользователю доступны следующие действия с заявкой:</p>
+                <ul style="line-height:2;">
+                    <li><strong>просмотр</strong> — нажмите на иконку глаза в столбце «Действия», либо в любое место строки заявки (подсвечивается серым);</li>
+                    <li><strong>редактирование</strong> — доступно только для заявок, которые не были завершены или закрыты. Нажмите на иконку карандаша в столбце «Действия».</li>
+                </ul>
+                <p>У любого обращения могут быть следующие статусы:</p>
+                <table class="table table-sm">
+                    <tbody>
+                        <tr><td><span class="badge badge-success">Новый</span></td><td>присваивается каждой новой заявке, которой ещё не назначен исполнитель</td></tr>
+                        <tr><td><span class="badge badge-info">На уточнении</span></td><td>ответственный или администратор запросил дополнительную информацию о проблеме</td></tr>
+                        <tr><td><span class="badge badge-info">Уточнен</span></td><td>пользователь оставил уточняющий комментарий (может заменить любой текущий статус)</td></tr>
+                        <tr><td><span class="badge badge-secondary">В работе</span></td><td>заявку взял на себя исполнитель</td></tr>
+                        <tr><td><span class="badge badge-warning">Предоставлен</span></td><td>проблема, описанная в заявке, была решена</td></tr>
+                    </tbody>
+                </table>
+                <div class="alert alert-info py-2 px-3" style="font-size:.88em;">
+                    Заявка автоматически пропадает из списка обращений пользователя, если исполнитель закрывает её, но остаётся на странице «Все заявки».
+                </div>
+                <p class="mt-3">Боковое меню содержит разделы: Панель, Создать заявку, Все заявки, Чат, Профиль, Помощь, Выход.</p>
+                <img src="{% static 'images/help/image3.png' %}" alt="Боковое меню" style="max-width:260px;">
+            </div>
+
+            <!-- Создать заявку -->
+            <div class="bg_white shadow-sm pd_20 mrgn_10 help-card" id="create">
+                <h5 class="mb-3"><i class="far fa-edit text-muted mr-2"></i>Создать заявку</h5>
+                <p>На этой странице пользователь заполняет обращение, чтобы сообщить о проблеме:</p>
+                <ul style="line-height:2;">
+                    <li><strong>Тема обращения</strong> — кратко изложите, какая и/или с чем возникла проблема.</li>
+                    <li><strong>Приоритет</strong> — «Низкий», если проблема не требует срочного решения; «Высокий», если проблема требует внимания в ближайшее время; «Критический», если проблему нужно решить срочно.</li>
+                    <li><strong>КПО</strong> — выберите комплекс программного обеспечения, в котором возникли неполадки.</li>
+                    <li><strong>Описание обращения</strong> — подробно опишите проблему; можно также вставлять изображения в текстовое поле.</li>
+                    <li><strong>Вложения</strong> (опционально) — прикрепите один или несколько файлов любого формата через кнопку «Выбрать файлы» или перетащите их из папки.</li>
+                </ul>
+                <img src="{% static 'images/help/image4.png' %}" alt="Создание заявки">
+                <p class="mt-3">После заполнения всех полей нажмите «Отправить».</p>
+            </div>
+
+            <!-- Просмотр заявки -->
+            <div class="bg_white shadow-sm pd_20 mrgn_10 help-card" id="view">
+                <h5 class="mb-3"><i class="fas fa-eye text-muted mr-2"></i>Просмотр заявки</h5>
+                <p>Зайдите в пользовательскую панель или на страницу «Все заявки», найдите нужную заявку в таблице и нажмите на иконку глаза в столбце «Действия», либо щёлкните ЛКМ по строке заявки (подсвечивается серым).</p>
+                <img src="{% static 'images/help/image5.png' %}" alt="Переход к заявке">
+                <p class="mt-3">На странице просмотра заявки отображается:</p>
+                <ul style="line-height:2;">
+                    <li>тема заявки и её номер;</li>
+                    <li>её UID (нужен для проверки статуса заявки без входа в аккаунт);</li>
+                    <li>дата и время создания;</li>
+                    <li>планируемая дата завершения;</li>
+                    <li>имя и ссылка на профиль заказчика;</li>
+                    <li>имя и ссылка на профиль исполнителя (появляется при назначении на обращение; по ссылке доступна контактная информация);</li>
+                    <li>статус и приоритет;</li>
+                    <li>описание обращения;</li>
+                    <li>прикреплённые вложения (доступны для скачивания, быстрого просмотра и удаления);</li>
+                    <li>комментарии и решения.</li>
+                </ul>
+                <p>Отредактировать обращение можно, нажав на иконку карандаша рядом с номером и темой заявки:</p>
+                <img src="{% static 'images/help/image6.png' %}" alt="Редактирование заявки">
+                <p class="mt-3">Чтобы добавить вложения, не переходя в режим редактирования, нажмите на иконку скрепки там же:</p>
+                <img src="{% static 'images/help/image7.png' %}" alt="Быстрое добавление вложения">
+                <p class="mt-3">Комментарии находятся внизу страницы, после описания заявки. К комментарию можно прикрепить несколько вложений сразу — выберите или перетащите файлы в поле для вложений.</p>
+                <img src="{% static 'images/help/image8.png' %}" alt="Форма комментария">
+                <p class="mt-3">Комментарий можно отметить как уточняющий — переключатель «Уточняющий комментарий» переводит заявку в статус «Уточнен». Обычно это нужно, когда заявке присвоен статус «На уточнении».</p>
+                <img src="{% static 'images/help/image9.png' %}" alt="Уточняющий комментарий">
+                <p class="mt-3">Чтобы ответить на комментарий, нажмите «Ответить» под ним:</p>
+                <img src="{% static 'images/help/image10.png' %}" alt="Ответ на комментарий">
+                <p class="mt-3">Комментарии исполнителя под своим обращением можно отметить как решение проблемы — нажмите «Отметить как решение» под комментарием. Это действие не влияет на статус заявки.</p>
+                <img src="{% static 'images/help/image11.png' %}" alt="Отметить как решение" style="max-width:420px;">
+                <img src="{% static 'images/help/image12.png' %}" alt="Комментарий отмечен как решение">
+                <p class="mt-3">Свои комментарии можно редактировать и удалять:</p>
+                <img src="{% static 'images/help/image13.png' %}" alt="Редактирование и удаление комментария" style="max-width:520px;">
+                <p class="mt-3">Чтобы вернуться на страницу «Все заявки», нажмите «Назад»:</p>
+                <img src="{% static 'images/help/image14.png' %}" alt="Кнопка Назад" style="max-width:520px;">
+            </div>
+
+            <!-- Все заявки -->
+            <div class="bg_white shadow-sm pd_20 mrgn_10 help-card" id="all-tasks">
+                <h5 class="mb-3"><i class="fas fa-list text-muted mr-2"></i>Все заявки</h5>
+                <p>На этой странице отображаются все открытые пользователем заявки. Столбцы таблицы: дата создания, число комментариев, число вложений, статус, приоритет, тема.</p>
+                <img src="{% static 'images/help/image15.png' %}" alt="Таблица заявок">
+                <p class="mt-3">Список разделён на две вкладки:</p>
+                <ul style="line-height:2;">
+                    <li><strong>Активные</strong> — заявки со статусами «Новый», «В работе», «На уточнении», «Уточнен».</li>
+                    <li><strong>Завершённые</strong> — заявки со статусами «Предоставлен» и «Закрыт».</li>
+                </ul>
+                <img src="{% static 'images/help/image16.png' %}" alt="Вкладки Активные/Завершённые" style="max-width:420px;">
+                <p class="mt-3">Поиск по теме заявки:</p>
+                <img src="{% static 'images/help/image17.png' %}" alt="Поиск по теме">
+                <p class="mt-3">Или воспользуйтесь фильтрами: по статусу, по приоритету, по диапазону даты создания.</p>
+                <img src="{% static 'images/help/image18.png' %}" alt="Фильтры" style="max-width:380px;">
+                <p class="mt-3">Фильтры и поиск применяются автоматически. Чтобы сбросить их, нажмите «Сбросить» (кнопка активна, только если что-то выбрано).</p>
+                <img src="{% static 'images/help/image19.png' %}" alt="Кнопка Сбросить">
+            </div>
+
+            <!-- Чат -->
+            <div class="bg_white shadow-sm pd_20 mrgn_10 help-card" id="chat">
+                <h5 class="mb-3"><i class="far fa-comments text-muted mr-2"></i>Чат</h5>
+                <p>Можно связаться напрямую с ответственным по заявке или другим сотрудником для консультации по несложным вопросам. Чтобы создать чат, нажмите «Написать» и выберите сотрудника из выпадающего списка (кнопка активна, только когда собеседник выбран).</p>
+                <img src="{% static 'images/help/image20.png' %}" alt="Создание чата">
+            </div>
+
+            <!-- Профиль -->
+            <div class="bg_white shadow-sm pd_20 mrgn_10 help-card" id="profile">
+                <h5 class="mb-3"><i class="fas fa-user-cog text-muted mr-2"></i>Профиль</h5>
+                <p>Изменить фото профиля — нажмите «Изменить фото» под текущим и выберите новое изображение:</p>
+                <img src="{% static 'images/help/image21.png' %}" alt="Изменение фото профиля" style="max-width:480px;">
+                <p class="mt-3">Заполните дополнительную информацию — телефон, мессенджер, дополнительный email. Чекбокс «Показывать» рядом с каждым полем управляет тем, будет ли эта информация видна администратору и сотрудникам сервиса.</p>
+                <img src="{% static 'images/help/image22.png' %}" alt="Дополнительная информация профиля">
+                <p class="mt-3">Сохраните изменения кнопкой «Сохранить»:</p>
+                <img src="{% static 'images/help/image23.png' %}" alt="Сохранение профиля" style="max-width:360px;">
+            </div>
+
+            <!-- Выход -->
+            <div class="bg_white shadow-sm pd_20 mrgn_10 help-card" id="logout">
+                <h5 class="mb-3"><i class="fas fa-sign-out-alt text-muted mr-2"></i>Выход</h5>
+                <p>Нажмите на кнопку «Выход», чтобы выйти из аккаунта, и подтвердите действие в открывшемся окне. Нажмите «Отмена», если не хотите выходить из аккаунта.</p>
+                <img src="{% static 'images/help/image24.png' %}" alt="Подтверждение выхода">
+            </div>
+
+            {% if user.is_staff %}
+            <!-- Для сотрудников -->
+            <div class="bg_white shadow-sm pd_20 mrgn_10 help-card" id="staff">
+                <h5 class="mb-3"><i class="fas fa-user-tie text-muted mr-2"></i>Для сотрудников</h5>
+                <ul style="line-height:2;">
+                    <li><strong>Взять задачу</strong> — нажмите <i class="far fa-handshake"></i> на странице заявки. Заказчик получит уведомление.</li>
+                    <li><strong>Завершить</strong> — когда решение найдено, завершите задачу через меню <i class="fas fa-ellipsis-h"></i>. Заказчик получит уведомление.</li>
+                    <li><strong>Запросить информацию</strong> — оставьте комментарий с включённым переключателем «Требуется дополнительная информация».</li>
+                    <li><strong>Назначение исполнителя</strong> (для администратора) — на странице заявки выберите исполнителя из списка. Пока исполнитель назначен, сначала нужно снять его, прежде чем назначить другого — уведомление о назначении придёт исполнителю на почту.</li>
+                    <li><strong>Аналитика</strong> — статистика по всем заявкам доступна в разделе <a href="/analytics/">Аналитика</a>.</li>
+                    <li><strong>База данных</strong> — заказчики, продукты и типовые решения в разделе <a href="/database/">База данных</a>.</li>
+                </ul>
+            </div>
+            {% endif %}
+
+        </div>
+    </div>
+</div>
+<script>
+    $(document).on('click', '.help-card img', function() {
+        $('#lightboxImg').attr('src', $(this).attr('src'));
+        $('#imageLightbox').modal('show');
+    });
+</script>
+{% endblock content %}

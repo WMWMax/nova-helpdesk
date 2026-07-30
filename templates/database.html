@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block breadcrumbs %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-11 offset-md-1 mt_80">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="/"><i class="fas fa-home"></i></a></li>
+                    <li class="breadcrumb-item active" aria-current="page">База данных</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+</div>
+{% endblock breadcrumbs %}
+
+{% block content %}
+<div class="container">
+
+    <!-- Заказчики -->
+    <div class="row">
+        <div class="col-md-12">
+            <div class="bg_white shadow-sm pd_20 mrgn_10">
+                <h5 class="mb-3">Заказчики ({{ customers.count }})</h5>
+                <table class="table table-sm table-hover">
+                    <thead>
+                        <tr>
+                            <th>Имя</th>
+                            <th>Логин</th>
+                            <th>Почта</th>
+                            <th>Продукты</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for c in customers %}
+                        <tr>
+                            <td>{{ c.get_full_name|default:c.username }}</td>
+                            <td class="text-muted">{{ c.username }}</td>
+                            <td>{{ c.email|default:"—" }}</td>
+                            <td>
+                                {% for p in c.products.all %}
+                                    <span class="badge badge-light">{{ p }}</span>
+                                {% empty %}
+                                    <span class="text-muted">—</span>
+                                {% endfor %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="4" class="text-center text-muted">Нет заказчиков</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Продукты -->
+    <div class="row">
+        <div class="col-md-12">
+            <div class="bg_white shadow-sm pd_20 mrgn_10">
+                <h5 class="mb-3">Продукты / КПО ({{ products.count }})</h5>
+                <table class="table table-sm table-hover">
+                    <thead>
+                        <tr>
+                            <th>Наименование</th>
+                            <th>Серийный номер</th>
+                            <th>Дата поставки</th>
+                            <th>Адрес размещения</th>
+                            <th>Пользователи</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for p in products %}
+                        <tr>
+                            <td>{{ p.product_name }}</td>
+                            <td>{{ p.product_serialnumber|default:"—" }}</td>
+                            <td>{{ p.product_date|default:"—" }}</td>
+                            <td>{{ p.product_address|default:"—" }}</td>
+                            <td>
+                                {% for u in p.users.all %}
+                                    <span class="badge badge-light">{{ u.get_full_name|default:u.username }}</span>
+                                {% empty %}
+                                    <span class="text-muted">—</span>
+                                {% endfor %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="5" class="text-center text-muted">Нет продуктов</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Типовые решения -->
+    <div class="row">
+        <div class="col-md-12">
+            <div class="bg_white shadow-sm pd_20 mrgn_10">
+                <h5 class="mb-3">Типовые решения ({{ solutions.count }})</h5>
+                {% if solutions %}
+                    {% for s in solutions %}
+                    <div class="card mb-2">
+                        <div class="card-header d-flex justify-content-between align-items-center"
+                             data-toggle="collapse" data-target="#sol-{{ s.id }}"
+                             style="cursor:pointer;">
+                            <span>{{ s.solution_title }}</span>
+                            {% if s.solution_product %}
+                            <span class="badge badge-secondary">{{ s.solution_product }}</span>
+                            {% endif %}
+                        </div>
+                        <div id="sol-{{ s.id }}" class="collapse">
+                            <div class="card-body">
+                                <p class="text-muted mb-1"><strong>Проблема:</strong></p>
+                                <p>{{ s.solution_problem }}</p>
+                                <p class="text-muted mb-1"><strong>Решение:</strong></p>
+                                <p class="mb-0">{{ s.solution_text }}</p>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <p class="text-muted">Типовые решения пока не добавлены. Добавить можно через <a href="/admin/">панель администратора</a>.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock content %}

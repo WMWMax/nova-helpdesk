@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block extrascripts %}
+<script src="{% static 'js/Chart.min.js' %}"></script>
+{% endblock %}
+
+{% block breadcrumbs %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-11 offset-md-1 mt_80">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="/"><i class="fas fa-home"></i></a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Аналитика</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+</div>
+{% endblock breadcrumbs %}
+
+{% block content %}
+<div class="container">
+
+    <!-- Общая статистика -->
+    <div class="row align-items-stretch">
+        <div class="col-md-3 d-flex">
+            <div class="bg_white shadow-sm pd_20 mrgn_10 text-center flex-fill d-flex flex-column align-items-center justify-content-center">
+                <h2 class="text-primary mb-1">{{ total }}</h2>
+                <p class="text-muted mb-0">Всего заявок</p>
+            </div>
+        </div>
+        <div class="col-md-3 d-flex">
+            <div class="bg_white shadow-sm pd_20 mrgn_10 text-center flex-fill d-flex flex-column align-items-center justify-content-center">
+                <h2 class="text-success mb-1">{{ count_new }}</h2>
+                <p class="text-muted mb-0">Новых</p>
+            </div>
+        </div>
+        <div class="col-md-3 d-flex">
+            <div class="bg_white shadow-sm pd_20 mrgn_10 text-center flex-fill d-flex flex-column align-items-center justify-content-center">
+                <h2 class="text-secondary mb-1">{{ count_work }}</h2>
+                <p class="text-muted mb-0">В работе</p>
+            </div>
+        </div>
+        <div class="col-md-3 d-flex">
+            <div class="bg_white shadow-sm pd_20 mrgn_10 text-center flex-fill d-flex flex-column align-items-center justify-content-center">
+                <h2 class="text-dark mb-1">{{ avg_response|default:"—" }}</h2>
+                <p class="text-muted mb-0">Среднее время реакции</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- График по дням -->
+    <div class="row">
+        <div class="col-md-12">
+            <div class="bg_white shadow-sm pd_20 mrgn_10">
+                <h6 class="mb-3">Заявки за последние 7 дней</h6>
+                <canvas id="chartDays" height="80"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- По приоритетам -->
+        <div class="col-md-4">
+            <div class="bg_white shadow-sm pd_20 mrgn_10">
+                <h6 class="mb-3">По приоритетам</h6>
+                <canvas id="chartPrio" height="200"></canvas>
+            </div>
+        </div>
+
+        <!-- По статусам -->
+        <div class="col-md-4">
+            <div class="bg_white shadow-sm pd_20 mrgn_10">
+                <h6 class="mb-3">По статусам</h6>
+                <table class="table table-sm">
+                    {% for name, count in by_status.items %}
+                    <tr>
+                        <td>{{ name }}</td>
+                        <td><strong>{{ count }}</strong></td>
+                    </tr>
+                    {% endfor %}
+                </table>
+            </div>
+        </div>
+
+        <!-- По КПО -->
+        <div class="col-md-4">
+            <div class="bg_white shadow-sm pd_20 mrgn_10">
+                <h6 class="mb-3">По КПО</h6>
+                {% if by_product %}
+                <table class="table table-sm">
+                    {% for row in by_product %}
+                    <tr>
+                        <td>{{ row.task_product__product_name }}</td>
+                        <td><strong>{{ row.count }}</strong></td>
+                    </tr>
+                    {% endfor %}
+                </table>
+                {% else %}
+                <p class="text-muted">Нет данных</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // График по дням
+    new Chart(document.getElementById('chartDays'), {
+        type: 'line',
+        data: {
+            labels: {{ stat.labels|safe }},
+            datasets: [{
+                label: 'Открыто',
+                data: {{ stat.created_items }},
+                borderColor: 'rgba(255, 99, 132, 1)',
+                backgroundColor: 'rgba(255, 99, 132, 0.1)',
+                borderWidth: 2,
+                fill: true
+            }, {
+                label: 'Закрыто',
+                data: {{ stat.closed_items }},
+                borderColor: 'rgba(54, 162, 235, 1)',
+                backgroundColor: 'rgba(54, 162, 235, 0.1)',
+                borderWidth: 2,
+                fill: true
+            }]
+        },
+        options: { scales: { yAxes: [{ ticks: { beginAtZero: true } }] } }
+    });
+
+    // График по приоритетам
+    new Chart(document.getElementById('chartPrio'), {
+        type: 'doughnut',
+        data: {
+            labels: ['Критический', 'Высокий', 'Низкий'],
+            datasets: [{
+                data: [{{ prio_crit }}, {{ prio_high }}, {{ prio_low }}],
+                backgroundColor: ['#dc3545', '#ffc107', '#17a2b8']
+            }]
+        },
+        options: { legend: { position: 'bottom', align: 'start' } }
+    });
+</script>
+{% endblock content %}

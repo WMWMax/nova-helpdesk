@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block breadcrumbs %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-11 offset-md-1 mt_80">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item active" aria-current="page">Пользовательская панель</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+</div>
+{% endblock breadcrumbs %}
+
+{% block content %}
+<div class="container">
+
+    <!-- Приветствие и счётчики -->
+    <div class="row">
+        <div class="col-md-12">
+            <div class="bg_white shadow-sm pd_20 mrgn_10 d-flex align-items-center justify-content-between">
+                <small class="text-muted">Здравствуйте, <strong>{{ user.get_full_name|default:user.username }}</strong></small>
+                <div class="d-flex" style="gap:24px;">
+                    <small class="text-muted">В работе: <strong>{{ stat.count_status.0 }}</strong></small>
+                    <small class="text-muted">Новых: <strong>{{ stat.count_status.1 }}</strong></small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Мои продукты -->
+    {% if products %}
+    <div class="row">
+        <div class="col-md-12">
+            <div class="bg_white shadow-sm pd_20 mrgn_10">
+                <small class="text-muted d-block mb-2">Мои КПО</small>
+                {% for p in products %}
+                    <span class="badge badge-secondary mr-1" style="font-size:.85em; padding:5px 10px;">{{ p.product_name }}</span>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Таблица заявок -->
+    <div class="row">
+        <div class="col-md-12">
+            <div class="bg_white shadow-sm pd_20 mrgn_10">
+                <h6 class="mb-3">Открытые заявки ({{ tasks.paginator.count }})</h6>
+                <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th class="table__col_w_15">Дата создания</th>
+                            <th class="table__col_w_10">Приоритет</th>
+                            <th class="table__col_w_10">Статус</th>
+                            <th>Тема и описание</th>
+                            <th class="table__col_w_15">Дата принятия</th>
+                            <th class="table__col_w_5"><i class="fas fa-paperclip" title="Вложения"></i></th>
+                            <th class="table__col_w_5"><i class="far fa-comment" title="Комментарии"></i></th>
+                            <th class="table__col_w_10">Действия</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for task in tasks %}
+                        <tr data-href="{{ task.get_absolute_url }}">
+                            <td class="text-muted" style="font-size:.85em;">{{ task.task_createdate|date:"d.m.Y H:i" }}</td>
+                            <td>
+                                {% if task.task_prio == 'CRIT' %}
+                                    <span class="badge badge-danger">Критический</span>
+                                {% elif task.task_prio == 'HIGH' %}
+                                    <span class="badge badge-warning">Высокий</span>
+                                {% else %}
+                                    <span class="badge badge-info">Низкий</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if task.task_status == 'NEW' %}
+                                    <span class="badge badge-success">Новый</span>
+                                {% elif task.task_status == 'CLOSE' %}
+                                    <span class="badge badge-dark">Закрыт</span>
+                                {% elif task.task_status == 'REQ' %}
+                                    <span class="badge badge-info">Уточнение</span>
+                                {% elif task.task_status == 'ANS' %}
+                                    <span class="badge badge-info">Уточнен</span>
+                                {% elif task.task_status == 'END' %}
+                                    <span class="badge badge-warning">Предоставлен</span>
+                                {% else %}
+                                    <span class="badge badge-secondary">В работе</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="{{ task.get_absolute_url }}">{{ task.task_subject }}</a>
+                                <div class="text-muted" style="font-size:.8em; margin-top:2px;">
+                                    {{ task.task_text|striptags|truncatechars:80 }}
+                                </div>
+                            </td>
+                            <td class="text-muted" style="font-size:.85em;">
+                                {% if task.task_startdate %}
+                                    {{ task.task_startdate|date:"d.m.Y H:i" }}
+                                {% else %}
+                                    <span class="text-muted">—</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-center">{{ task.taskfiles_set.count }}</td>
+                            <td class="text-center">{{ task.taskcomment_set.count }}</td>
+                            <td>
+                                <a href="{{ task.get_absolute_url }}" class="btn btn-sm btn-outline-secondary" title="Открыть">
+                                    <i class="far fa-eye"></i>
+                                </a>
+                                {% if task.task_status == 'NEW' %}
+                                <a href="{{ task.get_editable_url }}" class="btn btn-sm btn-outline-secondary" title="Редактировать">
+                                    <i class="far fa-edit"></i>
+                                </a>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="8" class="text-center text-muted py-4">Нет открытых заявок</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                </div>
+                {% include "includes/pagination.html" with page_obj=tasks page_param="page" %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock content %}

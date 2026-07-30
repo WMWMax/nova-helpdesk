@@ -1,0 +1,451 @@
+{% extends "base.html" %}
+{% load static %}
+{% load profile_tags %}
+
+{% block breadcrumbs %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-11 offset-md-1 mt_80">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="/"><i class="fas fa-home"></i></a></li>
+                    <li class="breadcrumb-item"><a href="/chat/">Сообщения</a></li>
+                    <li class="breadcrumb-item active">
+                        {{ other_user.get_full_name|default:other_user.username }}
+                    </li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+</div>
+{% endblock breadcrumbs %}
+
+{% block content %}
+{% get_avatar_url other_user as other_avatar %}
+{% get_avatar_url user as my_avatar %}
+
+<div class="container mt_20" style="max-width:720px;">
+    <a href="/chat/" class="btn btn-sm btn-outline-secondary mb-2"><i class="fas fa-arrow-left"></i> Назад</a>
+    <div class="bg_white shadow-sm" style="border-radius:6px; overflow:hidden; border:1px solid #dee2e6;">
+
+        {# Шапка #}
+        <div class="d-flex align-items-center px-3 py-2 border-bottom" style="background:#f8f9fa;">
+            <a href="/profile/{{ other_user.id }}/" class="mr-3 text-decoration-none">
+                {% if other_avatar %}
+                    <img src="{{ other_avatar }}" class="rounded-circle"
+                         style="width:38px; height:38px; object-fit:cover;">
+                {% else %}
+                    <div class="rounded-circle d-flex align-items-center justify-content-center"
+                         style="width:38px; height:38px; background:#6c757d; color:#fff; font-weight:600; font-size:.95rem; flex-shrink:0;">
+                        {{ other_user.get_full_name|default:other_user.username|slice:":1"|upper }}
+                    </div>
+                {% endif %}
+            </a>
+            <div>
+                <div style="font-size:.9rem; font-weight:600; color:#212529;">
+                    {{ other_user.get_full_name|default:other_user.username }}
+                </div>
+                <div style="font-size:.75rem; color:#6c757d;">
+                    {% if other_user.is_superuser %}Администратор
+                    {% elif other_user.is_staff %}Сотрудник
+                    {% else %}Заказчик{% endif %}
+                </div>
+            </div>
+        </div>
+
+        {# Лента сообщений #}
+        <div id="chatMessages"
+             style="height:440px; overflow-y:auto; padding:16px 20px; display:flex; flex-direction:column; gap:10px; background:#f8f9fa;">
+
+            {% for msg in chat_messages %}
+                {% if msg.sender == user %}
+                    {# Моё — справа #}
+                    <div class="d-flex justify-content-end align-items-end" style="gap:8px;">
+                        <div style="max-width:68%;">
+                            <div style="background:#2563eb; color:#fff; border-radius:14px 14px 2px 14px;
+                                        padding:{% if msg.file_is_image and not msg.body %}3px{% else %}8px 14px{% endif %}; font-size:.88rem; line-height:1.5;">
+                                {% if msg.body %}{{ msg.body }}{% endif %}
+                                {% if msg.file %}
+                                <div style="{% if msg.body %}margin-top:6px;{% endif %}">
+                                    {% if msg.file_is_image %}
+                                    <img src="{{ msg.file.url }}" onclick="openImgModal('{{ msg.file.url }}')"
+                                         style="max-width:220px; max-height:220px; border-radius:12px; cursor:pointer; display:block;">
+                                    {% else %}
+                                    <a href="{{ msg.file.url }}" target="_blank" rel="noopener"
+                                       class="d-flex align-items-center" style="text-decoration:none; color:#fff; gap:10px; background:rgba(255,255,255,.15); border-radius:10px; padding:6px 10px;">
+                                        <div style="width:36px; height:36px; border-radius:50%; background:rgba(255,255,255,.25); display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                                            <i class="fas {{ msg.file_icon }}"></i>
+                                        </div>
+                                        <div style="min-width:0;">
+                                            <div style="font-size:.82rem; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:140px;">{{ msg.file_basename }}</div>
+                                            <div style="font-size:.72rem; opacity:.8;">{{ msg.file_extension }}{% if msg.file_size_display %} · {{ msg.file_size_display }}{% endif %}</div>
+                                        </div>
+                                    </a>
+                                    {% endif %}
+                                </div>
+                                {% endif %}
+                            </div>
+                            <div class="d-flex justify-content-end align-items-center mt-1" style="gap:3px;">
+                                <small style="font-size:.7rem; color:#adb5bd;">{{ msg.timestamp|date:"H:i" }}</small>
+                                {% if msg.is_read %}
+                                    <small class="msg-check" style="font-size:.7rem; color:#53bdeb; letter-spacing:-2px;">✓✓</small>
+                                {% else %}
+                                    <small class="msg-check" style="font-size:.7rem; color:#adb5bd;">✓</small>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                {% else %}
+                    {# Чужое — слева с аватаром #}
+                    <div class="d-flex justify-content-start align-items-end" style="gap:8px;">
+                        {% if other_avatar %}
+                            <img src="{{ other_avatar }}" class="rounded-circle flex-shrink-0"
+                                 style="width:30px; height:30px; object-fit:cover; margin-bottom:2px;">
+                        {% else %}
+                            <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
+                                 style="width:30px; height:30px; background:#adb5bd; color:#fff; font-size:.75rem; font-weight:600; margin-bottom:2px;">
+                                {{ other_user.get_full_name|default:other_user.username|slice:":1"|upper }}
+                            </div>
+                        {% endif %}
+                        <div style="max-width:68%;">
+                            <div style="background:#f0f0f0; color:#212529; border-radius:14px 14px 14px 2px;
+                                        padding:{% if msg.file_is_image and not msg.body %}3px{% else %}8px 14px{% endif %}; font-size:.88rem; line-height:1.5;">
+                                {% if msg.body %}{{ msg.body }}{% endif %}
+                                {% if msg.file %}
+                                <div style="{% if msg.body %}margin-top:6px;{% endif %}">
+                                    {% if msg.file_is_image %}
+                                    <img src="{{ msg.file.url }}" onclick="openImgModal('{{ msg.file.url }}')"
+                                         style="max-width:220px; max-height:220px; border-radius:12px; cursor:pointer; display:block;">
+                                    {% else %}
+                                    <a href="{{ msg.file.url }}" target="_blank" rel="noopener"
+                                       class="d-flex align-items-center" style="text-decoration:none; color:#212529; gap:10px; background:rgba(0,0,0,.05); border-radius:10px; padding:6px 10px;">
+                                        <div style="width:36px; height:36px; border-radius:50%; background:rgba(0,0,0,.08); display:flex; align-items:center; justify-content:center; flex-shrink:0; color:#495057;">
+                                            <i class="fas {{ msg.file_icon }}"></i>
+                                        </div>
+                                        <div style="min-width:0;">
+                                            <div style="font-size:.82rem; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:140px;">{{ msg.file_basename }}</div>
+                                            <div style="font-size:.72rem; color:#6c757d;">{{ msg.file_extension }}{% if msg.file_size_display %} · {{ msg.file_size_display }}{% endif %}</div>
+                                        </div>
+                                    </a>
+                                    {% endif %}
+                                </div>
+                                {% endif %}
+                            </div>
+                            <div class="mt-1">
+                                <small style="font-size:.7rem; color:#adb5bd;">{{ msg.timestamp|date:"H:i" }}</small>
+                            </div>
+                        </div>
+                    </div>
+                {% endif %}
+            {% empty %}
+                <div class="text-center text-muted" style="margin:auto;">
+                    <i class="far fa-comment-dots fa-2x mb-2 d-block"></i>
+                    <span style="font-size:.88rem;">Начните диалог — напишите первое сообщение</span>
+                </div>
+            {% endfor %}
+        </div>
+
+        {# Поле ввода #}
+        <div class="border-top px-3 py-2" style="background:#fff;">
+            {# Превью выбранных файлов #}
+            <div id="filePreviewBar" style="display:none; flex-wrap:wrap; gap:6px; margin-bottom:8px;"></div>
+            <form id="chatForm" autocomplete="off" style="display:flex; align-items:center; gap:8px;">
+                {% csrf_token %}
+                <label class="mb-0" style="cursor:pointer; flex-shrink:0;" title="Прикрепить файлы">
+                    <i class="fas fa-paperclip text-muted" style="font-size:1.1rem;"></i>
+                    <input type="file" id="chatFileInput" multiple hidden>
+                </label>
+                <input id="chatInput" type="text" class="form-control form-control-sm"
+                       placeholder="Написать сообщение..." maxlength="4000"
+                       style="border-radius:6px; border-color:#dee2e6;">
+                <button type="submit" id="chatSendBtn" class="btn btn-secondary btn-sm px-3" disabled
+                        style="white-space:nowrap; flex-shrink:0;">Отправить</button>
+            </form>
+            <small id="wsStatus" class="text-muted" style="font-size:.72rem; display:none;">
+                Нет соединения. Обновите страницу.
+            </small>
+        </div>
+    </div>
+</div>
+
+<script>
+    var currentUserId = {{ user.id }};
+    var otherUserId   = {{ other_user.id }};
+    var otherAvatar   = '{{ other_avatar|default:"" }}';
+    var otherInitial  = '{{ other_user.get_full_name|default:other_user.username|slice:":1"|upper }}';
+
+    function scrollToBottom() {
+        var box = document.getElementById('chatMessages');
+        box.scrollTop = box.scrollHeight;
+    }
+    scrollToBottom();
+
+    function markAllChecksRead() {
+        document.querySelectorAll('.msg-check').forEach(function(el) {
+            el.textContent = '✓✓';
+            el.style.color = '#53bdeb';
+            el.style.letterSpacing = '-2px';
+        });
+    }
+
+    function makeAvatar() {
+        if (otherAvatar) {
+            return '<img src="' + otherAvatar + '" class="rounded-circle flex-shrink-0" ' +
+                   'style="width:30px;height:30px;object-fit:cover;margin-bottom:2px;">';
+        }
+        return '<div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" ' +
+               'style="width:30px;height:30px;background:#adb5bd;color:#fff;font-size:.75rem;font-weight:600;margin-bottom:2px;">' +
+               otherInitial + '</div>';
+    }
+
+    var imgExts = ['.jpg', '.jpeg', '.png', '.gif', '.webp'];
+    function isImage(name) {
+        if (!name) return false;
+        var ext = name.toLowerCase().slice(name.lastIndexOf('.'));
+        return imgExts.indexOf(ext) !== -1;
+    }
+
+    var fileIconMap = {
+        '.pdf': 'fa-file-pdf', '.doc': 'fa-file-word', '.docx': 'fa-file-word',
+        '.xls': 'fa-file-excel', '.xlsx': 'fa-file-excel', '.csv': 'fa-file-excel',
+        '.ppt': 'fa-file-powerpoint', '.pptx': 'fa-file-powerpoint',
+        '.zip': 'fa-file-archive', '.rar': 'fa-file-archive', '.7z': 'fa-file-archive',
+        '.mp3': 'fa-file-audio', '.wav': 'fa-file-audio',
+        '.mp4': 'fa-file-video', '.mov': 'fa-file-video', '.avi': 'fa-file-video',
+        '.txt': 'fa-file-alt'
+    };
+    function fileIconFor(name) {
+        var ext = name ? name.toLowerCase().slice(name.lastIndexOf('.')) : '';
+        return fileIconMap[ext] || 'fa-file';
+    }
+    function fileExtFor(name) {
+        var idx = name ? name.lastIndexOf('.') : -1;
+        return idx > -1 ? name.slice(idx + 1).toUpperCase() : '';
+    }
+
+    function buildBubbleContent(body, fileUrl, fileName, isOwn, fileSize) {
+        var html = '';
+        if (body) html += escapeHtml(body);
+        if (fileUrl) {
+            var mt = body ? 'margin-top:6px;' : '';
+            if (isImage(fileName)) {
+                html += '<div style="' + mt + '">' +
+                    '<img src="' + fileUrl + '" onclick="openImgModal(\'' + fileUrl + '\')" ' +
+                    'style="max-width:220px;max-height:220px;border-radius:12px;cursor:pointer;display:block;">' +
+                    '</div>';
+            } else {
+                var textColor  = isOwn ? '#fff' : '#212529';
+                var cardBg     = isOwn ? 'rgba(255,255,255,.15)' : 'rgba(0,0,0,.05)';
+                var iconBg     = isOwn ? 'rgba(255,255,255,.25)' : 'rgba(0,0,0,.08)';
+                var iconColor  = isOwn ? '' : 'color:#495057;';
+                var subColor   = isOwn ? 'opacity:.8;' : 'color:#6c757d;';
+                var subtitle   = fileExtFor(fileName) + (fileSize ? ' · ' + fileSize : '');
+                html += '<a href="' + fileUrl + '" target="_blank" rel="noopener" class="d-flex align-items-center" ' +
+                    'style="' + mt + 'text-decoration:none;color:' + textColor + ';gap:10px;background:' + cardBg + ';border-radius:10px;padding:6px 10px;">' +
+                    '<div style="width:36px;height:36px;border-radius:50%;background:' + iconBg + ';display:flex;align-items:center;justify-content:center;flex-shrink:0;' + iconColor + '">' +
+                    '<i class="fas ' + fileIconFor(fileName) + '"></i></div>' +
+                    '<div style="min-width:0;">' +
+                    '<div style="font-size:.82rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:140px;">' + escapeHtml(fileName) + '</div>' +
+                    '<div style="font-size:.72rem;' + subColor + '">' + subtitle + '</div>' +
+                    '</div></a>';
+            }
+        }
+        return html;
+    }
+
+    function appendMessage(body, senderId, timeStr, fileUrl, fileName, fileSize) {
+        var isOwn = (senderId === currentUserId);
+        var box   = document.getElementById('chatMessages');
+
+        var empty = box.querySelector('.text-center.text-muted');
+        if (empty && empty.style.margin === 'auto') empty.remove();
+
+        var content = buildBubbleContent(body, fileUrl, fileName, isOwn, fileSize);
+        var wrapper = document.createElement('div');
+
+        var imgOnly = !body && fileUrl && isImage(fileName);
+        var pad = imgOnly ? '3px' : '8px 14px';
+
+        if (isOwn) {
+            wrapper.innerHTML =
+                '<div class="d-flex justify-content-end align-items-end" style="gap:8px;">' +
+                  '<div style="max-width:68%;">' +
+                    '<div style="background:#2563eb;color:#fff;border-radius:14px 14px 2px 14px;' +
+                         'padding:' + pad + ';font-size:.88rem;line-height:1.5;">' +
+                      content +
+                    '</div>' +
+                    '<div class="d-flex justify-content-end align-items-center mt-1" style="gap:3px;">' +
+                      '<small style="font-size:.7rem;color:#adb5bd;">' + timeStr + '</small>' +
+                      '<small class="msg-check" style="font-size:.7rem;color:#adb5bd;">✓</small>' +
+                    '</div>' +
+                  '</div>' +
+                '</div>';
+        } else {
+            wrapper.innerHTML =
+                '<div class="d-flex justify-content-start align-items-end" style="gap:8px;">' +
+                  makeAvatar() +
+                  '<div style="max-width:68%;">' +
+                    '<div style="background:#f0f0f0;color:#212529;border-radius:14px 14px 14px 2px;' +
+                         'padding:' + pad + ';font-size:.88rem;line-height:1.5;">' +
+                      content +
+                    '</div>' +
+                    '<div class="mt-1"><small style="font-size:.7rem;color:#adb5bd;">' + timeStr + '</small></div>' +
+                  '</div>' +
+                '</div>';
+        }
+
+        box.appendChild(wrapper);
+        scrollToBottom();
+    }
+
+    function escapeHtml(str) {
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;');
+    }
+
+    // Обновляем бейджик сайдбара
+    (function() {
+        var count = parseInt('{{ unread_chat_count }}', 10) || 0;
+        var badge = document.querySelector('.nav__left_panel a[href="/chat/"] .badge-danger');
+        if (count > 0) { if (badge) badge.textContent = count; }
+        else           { if (badge) badge.remove(); }
+    })();
+
+    // WebSocket
+    var wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    var ws = new WebSocket(wsProtocol + '//' + window.location.host + '/ws/chat/' + otherUserId + '/');
+
+    ws.onmessage = function(e) {
+        var data = JSON.parse(e.data);
+        if (data.type === 'messages_read') {
+            markAllChecksRead();
+            return;
+        }
+        if (data.type === 'chat_message') {
+            appendMessage(data.message, data.sender_id, data.timestamp, data.file_url || null, data.file_name || null, data.file_size || null);
+            if (data.sender_id !== currentUserId) {
+                ws.send(JSON.stringify({type: 'mark_read'}));
+            }
+        }
+    };
+
+    ws.onerror = ws.onclose = function() {
+        document.getElementById('wsStatus').style.display = 'block';
+    };
+
+    var chatInput   = document.getElementById('chatInput');
+    var sendBtn     = document.getElementById('chatSendBtn');
+    var fileInput   = document.getElementById('chatFileInput');
+    var previewBar  = document.getElementById('filePreviewBar');
+    var csrf        = document.querySelector('[name=csrfmiddlewaretoken]').value;
+    var selectedFiles = [];
+
+    function updateSendBtn() {
+        sendBtn.disabled = chatInput.value.trim() === '' && selectedFiles.length === 0;
+    }
+
+    function renderPreviews() {
+        previewBar.innerHTML = '';
+        if (selectedFiles.length === 0) {
+            previewBar.style.display = 'none';
+            return;
+        }
+        previewBar.style.display = 'flex';
+        selectedFiles.forEach(function(file, idx) {
+            var item = document.createElement('div');
+            item.style.cssText = 'position:relative; display:inline-flex; align-items:center; background:#f0f4ff; border-radius:6px; padding:4px 8px; font-size:.8rem; gap:4px; max-width:160px;';
+            var isImage = file.type.startsWith('image/');
+            if (isImage) {
+                var img = document.createElement('img');
+                img.style.cssText = 'width:32px; height:32px; object-fit:cover; border-radius:4px; flex-shrink:0; cursor:pointer;';
+                var reader = new FileReader();
+                reader.onload = (function(i) { return function(e) {
+                    i.src = e.target.result;
+                    i.addEventListener('click', function() { openImgModal(e.target.result); });
+                }; })(img);
+                reader.readAsDataURL(file);
+                item.appendChild(img);
+            } else {
+                var icon = document.createElement('i');
+                icon.className = 'fas fa-file text-muted';
+                item.appendChild(icon);
+            }
+            var name = document.createElement('span');
+            name.style.cssText = 'overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:90px;';
+            name.textContent = file.name;
+            item.appendChild(name);
+            var del = document.createElement('a');
+            del.href = '#';
+            del.style.cssText = 'color:#adb5bd; flex-shrink:0; font-size:1rem; line-height:1;';
+            del.innerHTML = '&times;';
+            del.addEventListener('click', function(e) {
+                e.preventDefault();
+                selectedFiles.splice(idx, 1);
+                renderPreviews();
+                updateSendBtn();
+            });
+            item.appendChild(del);
+            previewBar.appendChild(item);
+        });
+    }
+
+    fileInput.addEventListener('change', function() {
+        Array.from(this.files).forEach(function(f) { selectedFiles.push(f); });
+        fileInput.value = '';
+        renderPreviews();
+        updateSendBtn();
+        chatInput.focus();
+    });
+
+    chatInput.addEventListener('input', updateSendBtn);
+
+    chatInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            document.getElementById('chatForm').dispatchEvent(new Event('submit'));
+        }
+    });
+
+    document.getElementById('chatForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        var text = chatInput.value.trim();
+
+        if (selectedFiles.length > 0) {
+            // Загружаем файлы по очереди через HTTP
+            var files = selectedFiles.slice();
+            selectedFiles = [];
+            renderPreviews();
+            chatInput.value = '';
+            updateSendBtn();
+            files.forEach(function(file, idx) {
+                var fd = new FormData();
+                fd.append('file', file);
+                if (idx === 0 && text) fd.append('body', text);
+                fd.append('csrfmiddlewaretoken', csrf);
+                fetch('/chat/' + otherUserId + '/upload/', {method: 'POST', body: fd});
+            });
+        } else {
+            // Текстовое сообщение через WebSocket
+            if (!text || ws.readyState !== WebSocket.OPEN) return;
+            ws.send(JSON.stringify({type: 'message', message: text}));
+            chatInput.value = '';
+            sendBtn.disabled = true;
+        }
+    });
+</script>
+<div id="imgModal" onclick="this.style.display='none'"
+     style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.85); z-index:9999;
+            align-items:center; justify-content:center; cursor:zoom-out;">
+    <img id="imgModalSrc" style="max-width:90vw; max-height:90vh; border-radius:8px; box-shadow:0 4px 32px rgba(0,0,0,.5);">
+</div>
+<script>
+    function openImgModal(src) {
+        document.getElementById('imgModalSrc').src = src;
+        var m = document.getElementById('imgModal');
+        m.style.display = 'flex';
+    }
+</script>
+{% endblock content %}

@@ -1,0 +1,262 @@
+<html>
+<head>
+    {%load static%}
+    <link rel="stylesheet" href="{% static 'css/main.css' %}">
+    <link rel="stylesheet" href="{% static 'css/bootstrap.min.css' %}">
+    <link rel="stylesheet" href="{% static 'css/all.min.css' %}">
+    <link rel="shortcut icon" href="{% static 'images/favicon.ico' %}" type="image/x-icon">
+    <link rel="stylesheet" href="{% static 'webfonts/roboto-v30-cyrillic_latin-regular.woff2' %}">
+    <script src="{% static 'js/jquery.js' %}"></script>
+    <!--<script src="{% static 'js/jquery-ui.min.js' %}"></script>-->
+    <script src="{% static 'js/bootstrap.bundle.min.js' %}"></script>
+    <script src="{% static 'js/all.min.js' %}"></script>
+
+    {%block extrascripts%}{%endblock%}
+    <style>
+        tr[data-href] { cursor: pointer; }
+    </style>
+</head>
+<body class="bg_gray h-100">
+    {% block breadcrumbs %}{% endblock breadcrumbs %}
+
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
+        <a class="navbar-brand" href="/">
+        <img src="{% static 'images/logo.svg' %}" alt="" width="40">
+        </a>
+        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav">
+                <li class="nav-item active">
+                    <a class="nav-link" href="/"> <span class="sr-only">(current)</span></a>
+                </li>            
+            </ul>            
+        </div>
+    </nav>
+
+
+
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+<div class="nav__left_panel" id="sidebar">
+    <ul class="nav__left_panel_list">
+        <li><a href="/" {% if request.path == '/' or '/users/' in request.path or '/admins/' in request.path %}class="nav-active"{% endif %}><i class="fas fa-columns"></i> Панель</a></li>
+        <li><a href="/tasks/create-task" {% if '/tasks/create-task' in request.path %}class="nav-active"{% endif %}><i class="far fa-edit"></i> Создать заявку</a></li>
+        <li class="nav-divider"></li>
+        <li><a href="/tasks/show" {% if request.path == '/tasks/show' %}class="nav-active"{% endif %}><i class="fas fa-tasks"></i> Все заявки</a></li>
+        {% if user.is_staff %}
+        <li><a href="/analytics/" {% if '/analytics/' in request.path %}class="nav-active"{% endif %}><i class="far fa-chart-bar"></i> Аналитика</a></li>
+        <li><a href="/database/" {% if '/database/' in request.path %}class="nav-active"{% endif %}><i class="fas fa-database"></i> База данных</a></li>
+        {% endif %}
+        {% if user.is_superuser %}
+        <li class="nav-divider"></li>
+        <li><a href="/admin" {% if '/admin' in request.path %}class="nav-active"{% endif %}><i class="fas fa-mask"></i> Суперадмин</a></li>
+        {% endif %}
+        <li class="nav-divider"></li>
+        <li>
+            <a href="/chat/" {% if '/chat/' in request.path %}class="nav-active"{% endif %}>
+                <i class="far fa-comments"></i> Чат
+                {% if unread_chat_count %}
+                <span class="badge badge-danger ml-auto" style="font-size:.7rem;">{{ unread_chat_count }}</span>
+                {% endif %}
+            </a>
+        </li>
+        <li><a href="/profile/" {% if '/profile/' in request.path %}class="nav-active"{% endif %}><i class="fas fa-cogs"></i> Профиль</a></li>
+        <li><a href="/help/" {% if '/help/' in request.path %}class="nav-active"{% endif %}><i class="far fa-question-circle"></i> Помощь</a></li>
+        <li><a href="#" onclick="document.getElementById('logoutModal').style.display='flex'; return false;"><i class="fas fa-sign-out-alt"></i> Выход</a></li>
+    </ul>
+</div>
+
+<div class="modal fade" id="imageLightbox" tabindex="-1">
+    <div class="modal-dialog modal-xl modal-dialog-centered" style="background:transparent;">
+        <div class="modal-content" style="background:transparent; border:none; box-shadow:none;">
+            <div class="text-right mb-1">
+                <button type="button" data-dismiss="modal" style="background:none; border:none; color:#fff; font-size:1.8rem; line-height:1;">&times;</button>
+            </div>
+            <img id="lightboxImg" src="" style="max-width:100%; max-height:85vh; margin:auto; display:block; border-radius:6px;">
+        </div>
+    </div>
+</div>
+
+<div id="logoutModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:9999; align-items:center; justify-content:center;">
+    <div class="bg_white pd_20 shadow" style="border-radius:6px; min-width:280px; text-align:center;">
+        <p class="mb-3"><strong>Выйти из аккаунта?</strong></p>
+        <a href="/syslogin/logout" class="btn btn-danger btn-sm mr-2">Выйти</a>
+        <button class="btn btn-secondary btn-sm" onclick="document.getElementById('logoutModal').style.display='none'">Отмена</button>
+    </div>
+</div>
+
+    
+    {% if messages %}
+    <div style="position:fixed; top:70px; right:20px; z-index:9999;">
+        {% for message in messages %}
+        <div class="toast show mb-2" role="alert" data-delay="4000">
+            <div class="toast-header text-white
+                {% if message.tags == 'error' %}bg-danger
+                {% elif message.tags == 'warning' %}bg-warning
+                {% else %}bg-success{% endif %}">
+                <strong class="mr-auto">
+                    {% if message.tags == 'error' %}Ошибка
+                    {% elif message.tags == 'warning' %}Внимание
+                    {% else %}Готово{% endif %}
+                </strong>
+                <button type="button" class="close text-white ml-2" data-dismiss="toast">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="toast-body">{{ message }}</div>
+        </div>
+        {% endfor %}
+    </div>
+    <script>
+        $(function() {
+            $('.toast').each(function() {
+                $(this).toast({ autohide: true, delay: 4000 }).toast('show');
+            });
+        });
+    </script>
+    {% endif %}
+
+    {% block content %}
+
+    {% endblock  %}
+
+    {% if user.is_authenticated %}
+    <script>
+    // Глобальный WebSocket — уведомления о новых сообщениях чата
+    (function() {
+        var wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        var notifyWs = new WebSocket(wsProtocol + '//' + window.location.host + '/ws/notify/');
+
+        notifyWs.onmessage = function(e) {
+            var data = JSON.parse(e.data);
+            if (data.type !== 'new_message') return;
+
+            // Если пользователь уже открыл чат именно с этим человеком — уведомление не нужно
+            var chatPath = '/chat/' + data.sender_id + '/';
+            if (window.location.pathname === chatPath) return;
+
+            showChatToast(data.sender_name, data.preview, data.sender_id);
+            incrementChatBadge();
+
+            // Сообщаем другим скриптам на странице (например, inbox), что пришло новое сообщение
+            document.dispatchEvent(new CustomEvent('chatNotification', { detail: data }));
+        };
+
+        // Показать всплывающее уведомление — весь блок кликабельный
+        function showChatToast(senderName, preview, senderId) {
+            var container = document.getElementById('notifyContainer');
+            if (!container) {
+                container = document.createElement('div');
+                container.id = 'notifyContainer';
+                container.style.cssText = 'position:fixed;top:70px;right:20px;z-index:10000;min-width:260px;max-width:320px;';
+                document.body.appendChild(container);
+            }
+
+            var toast = document.createElement('div');
+            toast.className = 'toast show mb-2 shadow';
+            toast.setAttribute('role', 'alert');
+            toast.style.cssText = 'cursor:pointer; overflow:hidden; border-radius:6px;';
+            toast.innerHTML =
+                '<div class="toast-header bg-dark text-white" style="pointer-events:none;">' +
+                    '<i class="far fa-comment-dots mr-2"></i>' +
+                    '<strong class="mr-auto" style="font-size:.9rem;">' + esc(senderName) + '</strong>' +
+                    '<span class="text-white-50 ml-2" style="font-size:.8rem;">нажмите, чтобы открыть</span>' +
+                    '<button type="button" class="close text-white ml-2" style="pointer-events:auto;" ' +
+                        'onclick="event.stopPropagation(); this.closest(\'.toast\').remove();">' +
+                        '<span>&times;</span>' +
+                    '</button>' +
+                '</div>' +
+                '<div class="toast-body" style="font-size:.88rem; background:#fff;">' +
+                    esc(preview) +
+                '</div>';
+
+            // Клик по всему toast-у — переход в чат
+            toast.addEventListener('click', function() {
+                window.location.href = '/chat/' + senderId + '/';
+            });
+
+            container.appendChild(toast);
+            setTimeout(function() { if (toast.parentNode) toast.remove(); }, 5000);
+        }
+
+        // Обновить бейджик в сайдбаре до нужного числа (или создать/удалить)
+        window.updateChatSidebarBadge = function(count) {
+            var badge = document.querySelector('.nav__left_panel a[href="/chat/"] .badge-danger');
+            if (count > 0) {
+                if (badge) {
+                    badge.textContent = count;
+                } else {
+                    var chatLink = document.querySelector('.nav__left_panel a[href="/chat/"]');
+                    if (chatLink) {
+                        var nb = document.createElement('span');
+                        nb.className = 'badge badge-danger ml-auto';
+                        nb.style.fontSize = '.7rem';
+                        nb.textContent = count;
+                        chatLink.appendChild(nb);
+                    }
+                }
+            } else {
+                if (badge) badge.remove();
+            }
+        };
+
+        function incrementChatBadge() {
+            var badge = document.querySelector('.nav__left_panel a[href="/chat/"] .badge-danger');
+            var current = badge ? (parseInt(badge.textContent) || 0) : 0;
+            window.updateChatSidebarBadge(current + 1);
+        }
+
+        function esc(str) {
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;');
+        }
+    })();
+    </script>
+    {% endif %}
+
+    <script>
+        // Бургер меню
+        var toggler = document.querySelector('.navbar-toggler');
+        var sidebar = document.getElementById('sidebar');
+        var overlay = document.getElementById('sidebarOverlay');
+        if (toggler) {
+            toggler.addEventListener('click', function() {
+                sidebar.classList.toggle('sidebar-open');
+                overlay.classList.toggle('active');
+            });
+            overlay.addEventListener('click', function() {
+                sidebar.classList.remove('sidebar-open');
+                overlay.classList.remove('active');
+            });
+        }
+    </script>
+
+    <script>
+        // Лайтбокс для изображений
+        $(document).on('click', '.text__container img', function() {
+            $('#lightboxImg').attr('src', $(this).attr('src'));
+            $('#imageLightbox').modal('show');
+        });
+
+        document.querySelectorAll('tr[data-href]').forEach(function(row) {
+            row.addEventListener('click', function(e) {
+                if (e.target.closest('a') || e.target.closest('button')) return;
+                window.location.href = row.dataset.href;
+            });
+        });
+    </script>
+<div class="container">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="footer text-right shadow-text-inset pd_10">
+                Powered by Nova &copy; {% now  'Y' %}
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

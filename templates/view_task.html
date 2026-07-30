@@ -1,0 +1,796 @@
+{% extends "base.html" %}
+{% load static %}
+{% load profile_tags %}
+
+{% block extrascripts %}
+    <link rel="stylesheet" href="{% static 'css/trumbowyg.min.css' %}">
+    <script src="{% static 'js/trumbowyg.min.js' %}"></script>
+    <style>
+        .text__container blockquote {
+            background: #f0f8ff;
+            border-left: 3px solid #0088cc !important;
+            border-radius: 0 6px 6px 0;
+            padding: 6px 10px !important;
+            margin: 0 0 10px 0 !important;
+            font-size: .88em;
+        }
+        .text__container blockquote .reply-author {
+            display: block;
+            color: #0088cc;
+            font-weight: 600;
+            font-size: .85em;
+            margin-bottom: 2px;
+        }
+        .text__container blockquote .reply-body {
+            color: #6c757d;
+            overflow: hidden;
+            max-height: 40px;
+            line-height: 1.3;
+            word-break: break-word;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+        }
+    </style>
+{% endblock %}
+
+{% block breadcrumbs %}
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-md-11 offset-md-1 mt_80">
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb">
+                        <li class="breadcrumb-item"><a href="/"><i class="fas fa-home"></i></a></li>
+                        {% if user.is_staff %}
+                        <li class="breadcrumb-item"><a href="/tasks/show">Все заявки</a></li>
+                        {% endif %}
+                        <li class="breadcrumb-item active" aria-current="page">#{{task.id}} {{task.task_subject}}</li>
+                    </ol>
+                </nav>
+            </div>
+        </div>
+    </div>
+{% endblock breadcrumbs %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="single-card bg_white pd_20 mrgn_10 shadow-sm">
+                <div class="container-fluid">
+                    <div class="row">
+                        <div class="col-md-10">
+                            <a href="/tasks/show/" class="btn btn-sm btn-outline-secondary mb-2"><i class="fas fa-arrow-left"></i> Назад</a>
+                            <h3> Заявка #{{task.id}} {{task.task_subject}} </h3>                            
+                            <small>Открыта: {{task.task_createdate}}</small></br>
+                            <small>UID: <code>{{ task.task_uuid }}</code> <span class="text-muted">(нужен для проверки статуса без входа в аккаунт)</span></small></br>
+                            <small>План. дата завершения: {{task.task_enddate}}</small></br>
+                            {% if task.task_customer %}
+                            <small>Заказчик: <a href="/profile/{{ task.task_customer.id }}/">{{ task.task_customer.get_full_name|default:task.task_customer.username }}</a></small></br>
+                            {% endif %}
+                            {% if task.task_executor %}
+                            <small>Исполнитель: <a href="/profile/{{ task.task_executor.id }}/">{{ task.task_executor.get_full_name|default:task.task_executor.username }}</a></small></br>
+                            {% endif %}
+                            {% if user.is_superuser %}
+                                {% if task.task_executor %}
+                                <button type="button" class="btn btn-sm btn-outline-danger mt-2"
+                                        onclick="document.getElementById('unassignModal').style.display='flex'">
+                                    <i class="fas fa-user-minus"></i> Снять исполнителя
+                                </button>
+                                <small class="text-muted d-block">Чтобы назначить другого исполнителя, сначала снимите текущего.</small>
+
+                                <div id="unassignModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:9999; align-items:center; justify-content:center;">
+                                    <div class="bg_white pd_20 shadow" style="border-radius:6px; min-width:280px; text-align:center;">
+                                        <p class="mb-3">Снять <strong>{{ task.task_executor.get_full_name|default:task.task_executor.username }}</strong> с заявки?</p>
+                                        <form method="POST" action="{{ task.get_absolute_url }}/assign" class="d-inline">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="executor_id" value="">
+                                            <button type="submit" class="btn btn-danger btn-sm mr-2">Снять</button>
+                                        </form>
+                                        <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('unassignModal').style.display='none'">Отмена</button>
+                                    </div>
+                                </div>
+                                {% else %}
+                                <form method="POST" action="{{ task.get_absolute_url }}/assign" class="d-inline-flex align-items-center mt-2" style="gap:6px;">
+                                    {% csrf_token %}
+                                    <select name="executor_id" class="form-control form-control-sm" style="width:auto;">
+                                        <option value="">— Выберите исполнителя —</option>
+                                        {% for staff in staff_users %}
+                                        <option value="{{ staff.id }}">
+                                            {{ staff.get_full_name|default:staff.username }}
+                                        </option>
+                                        {% endfor %}
+                                    </select>
+                                    <button type="submit" class="btn btn-sm btn-outline-secondary">Назначить</button>
+                                </form>
+                                {% endif %}
+                            {% endif %}
+                            {% comment %}Байджи приоритета{% endcomment %}      
+                            {% if task.task_status == 'NEW' %}
+                                <span class="badge badge-success">Новый</span>
+                            {% elif task.task_status == 'CLOSE' %}
+                                <span class="badge badge-dark">Закрыт</span>
+                            {% elif task.task_status == 'REQ' %}
+                                <span class="badge badge-info">На уточнении</span>
+                            {% elif task.task_status == 'ANS'%}
+                                <span class="badge badge-info">Уточнен</span>
+                            {% elif task.task_status == 'END'%}
+                                <span class="badge badge-warning">Предоставлен</span>
+                            {% else %}
+                                <span class="badge badge-secondary">В работе</span>
+                            {% endif %}
+
+                            {% comment %}Байджи статуса{% endcomment %}   
+                            {% if task.task_prio == 'CRIT' %}
+                                <span class="badge badge-danger">Критический</span>
+                            {% elif task.task_prio == 'HIGH' %}
+                                <span class="badge badge-warning">Высокий</span>
+                            {% else %}
+                                <span class="badge badge-info">Низкий</span>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-2 text-right">
+                            <ul class="task-action">
+                                {% if user == task.task_customer %}
+                                <li><a href="{{task.get_editable_url}}" title='Править'><i class="fas fa-pencil-alt"></i></a></li>
+                                <li><a href='' data-toggle="modal" data-target="#AttachFileModal" title='Добавить файлы'><i class="fas fa-paperclip"></i></a></li>
+                                {% endif %}
+                                {% if user.is_staff %}
+                                    {% if task.task_executor == None %}
+                                        <li><a href="{{task.get_absolute_url}}/take" title='Стать исполнителем'><i class="far fa-handshake"></i></a></li>
+                                    {% endif %}  
+                                <li>
+                                    <div class="dropdown">
+                                        <a href="" class="dropdown-toggle" id="dropdownMenu" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><i class="fas fa-ellipsis-h"></i></a>
+                                 
+                                        <div class="dropdown-menu pd_10" aria-labelledby="dropdownMenu">
+                                            {% if user.is_staff %}
+
+                                                <a href="#" title='История изменений' class="dropdown-item" data-toggle="modal" data-target='#HistoryModal'><i class="fas fa-history"></i> История изменений</a>
+                                                {% if  task.task_executor%}
+
+                                                    {% if  task.task_status == 'ANS'%}
+                                                    <a href="{{task.get_absolute_url}}/continue" title='Продолжить' class="dropdown-item"><i class="far fa-play-circle"></i> Продолжить</a>
+                                                    {% elif task.task_status != 'CLOSE' and task.task_status != 'END'%}
+                                                    <a href="{{task.get_absolute_url}}/end" title='Завершить' class="dropdown-item"><i class="far fa-stop-circle"></i>Завершить</a>                            
+                                                    {% endif %}
+
+                                                {% endif %}
+                                            
+
+                                            {% if user.is_superuser %}
+                                                {% if task.task_status == 'CLOSE' %}
+                                                    <a href="{{task.get_absolute_url}}/reopen" title='Открыть заново' class="dropdown-item"><i class="fas fa-undo"></i> Открыть заново</a>
+                                                {% else %}
+                                                    <a href="{{task.get_absolute_url}}/close" title='Закрыть' class="text-danger dropdown-item"><i class="far fa-window-close"></i> Закрыть</a>
+                                                {% endif %}
+                                            {% endif %}                                        
+                                        {% endif %}
+                                        </div>
+                                   </div>
+                                </li>
+                                {% else %}
+                                
+                                    {% if task.task_status == 'END'%}
+                                    <li>
+                                        <a href="{{task.get_absolute_url}}/reopen" title='Открыть заново' class="text-danger dropdown-item"><i class="fas fa-undo"></i></a>
+                                    </li>
+                                    {% endif %}
+                                
+                                {% endif %}
+                                
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                <div class="container-fluid">
+                    <div class="row">
+                        <div class="col-md-12">
+                            <hr style="border-color:#dee2e6; margin: 12px 0;">
+                            <div class="text__container" style="font-size:1rem; line-height:1.7; padding: 8px 4px; min-height: 60px;">
+                                {{task.task_text | safe}}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if task.taskfiles_set.all%}
+<div class="container">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="files-card bg_white pd_20 mrgn_10 shadow-sm">
+                <h5>Прикрепленные файлы</h5>
+                
+                <table class='table mt_20'>
+                    {% for f in task.taskfiles_set.all %}
+                    <tr>
+                        <td><i class="far fa-file-{{f.get_icon_extension}}"></i></td>
+                        <td class='text-left'><a href="{{f.get_file_url}}" target="_blank" rel="noopener">{{f.get_filename}} </a></td>
+                        <td>{{f.get_filesize}}</td>
+                        <td>
+                            <a href="{{f.get_file_url}}" download class="text-muted mr-2" title="Скачать"><i class="fas fa-download"></i></a>
+                            {% if user == task.task_customer %}<a href="#" onclick="confirmDelete('{{task.get_absolute_url}}/delete/{{f.id}}', '{{f.get_filename}}'); return false;" title="Удалить"><i class="far fa-trash-alt text-danger"></i></a>{% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </table>            
+                
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<div class="container ">
+    <div class="row">
+        <div class="col-md-12">            
+            <div class="comments-form-card bg_white pd_20 mrgn_10 shadow-sm">
+                <div class="container-fluid">
+                    <div class="row">
+                        <div class="col-md-12">
+                            <h5>Комментарии и решения</h5>
+                            <form action="{{task.id}}/add-comment" method="POST" enctype="multipart/form-data">
+                                {% csrf_token %}
+                                <input type="hidden" name="reply_author" id="replyAuthorInput">
+                                <input type="hidden" name="reply_text" id="replyTextInput">
+                                <input type="hidden" name="reply_comment_id" id="replyCommentIdInput">
+                                <div id="replyPreview" style="display:none; border-left:3px solid #0088cc; background:#f0f8ff; border-radius:0 6px 6px 0; padding:8px 12px; margin-bottom:8px; font-size:.88em;">
+                                    <div class="d-flex justify-content-between align-items-start" style="overflow:hidden;">
+                                        <div style="min-width:0; flex:1;">
+                                            <strong id="replyPreviewAuthor" style="color:#0088cc; font-size:.85em; display:block;"></strong>
+                                            <div id="replyPreviewText" class="text-muted mt-1" style="font-size:.85em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"></div>
+                                        </div>
+                                        <button type="button" onclick="cancelReply()" style="background:none; border:none; color:#adb5bd; font-size:1.1rem; line-height:1; padding:0 0 0 8px; flex-shrink:0;">&times;</button>
+                                    </div>
+                                </div>
+                                <div class="form-row">
+                                    <textarea name="comment_text" id="editor" required></textarea>
+                                </div>
+                                <div class="form-row mt-2">
+                                    <div class="col-md-12">
+                                        <div id="commentDropZone" style="border:2px dashed #ced4da; border-radius:6px; padding:12px 16px; cursor:pointer; transition:border-color .2s, background .2s; font-size:.85em;" class="text-muted d-flex align-items-center">
+                                            <i class="fas fa-paperclip mr-2"></i>
+                                            <span id="commentDropLabel">Прикрепить файлы — перетащите или нажмите</span>
+                                            <input type="file" id="commentFileInput" name="comment_files" multiple hidden>
+                                        </div>
+                                        <div id="commentFilePreview" style="display:none; flex-wrap:wrap; gap:6px; margin-top:8px;"></div>
+                                    </div>
+                                </div>
+                                <div class="form-row mt-2">
+                                    <div class="form-group col-md-6 text-left">
+                                          <button type="submit" class="btn btn-success">Отправить</button>
+                                    </div>
+                                    {% if user.is_staff %}
+                                        <div class="form-group col-md-1">
+                                            <div class="center">                                            
+                                                <input name="has_question" type="checkbox" id="cbx" style="display:none"/>
+                                                <label for="cbx" class="toggle"><span></span></label>
+                                            </div>
+                                        </div>
+                                        <div class="form-group col-md-5">
+                                            <span>Требуется дополнительная информация</span>
+                                        </div>                               
+                                    {% else %}
+                                        <div class="form-group col-md-1">
+                                            <div class="center">                                            
+                                                <input name="is_answer" type="checkbox" id="cbx" style="display:none"/>
+                                                <label for="cbx" class="toggle"><span></span></label>
+                                            </div>
+                                        </div>
+                                        <div class="form-group col-md-5">
+                                            <span>Уточняющий комментарий</span>
+                                        </div>
+                                    {% endif %}
+                                    
+                                    
+                                </div>  
+                            </form>
+                        </div>
+                    </div>
+                    <div class="row mt-3">
+                        <div class="col-md-12">
+                            {% for comment in comments %}
+                            <div id="comment-{{ comment.id }}" class="comment-card {% if comment.comment_isresult %}comment-solution{% elif comment.comment_author.is_staff %}comment-staff{% else %}comment-customer{% endif %}">
+                                <div class="d-flex align-items-center mb-2">
+                                    {% get_avatar_url comment.comment_author as avatar_url %}
+                                    {% if avatar_url %}
+                                    <img src="{{ avatar_url }}" class="comment-avatar" style="object-fit:cover;">
+                                    {% else %}
+                                    <div class="comment-avatar {% if comment.comment_author.is_staff %}avatar-staff{% else %}avatar-customer{% endif %}">
+                                        {{ comment.comment_author.get_full_name|default:comment.comment_author.username|slice:":1"|upper }}
+                                    </div>
+                                    {% endif %}
+                                    <div>
+                                        <strong style="font-size:.9em;">{{ comment.comment_author.get_full_name|default:comment.comment_author.username }}</strong>
+                                        {% if comment.comment_author.is_staff %}<span class="badge badge-secondary ml-1" style="font-size:.7em;">Сотрудник</span>{% endif %}
+                                        <div class="text-muted" style="font-size:.8em;">{{ comment.comment_createdate|date:"d.m.Y H:i" }}</div>
+                                    </div>
+                                </div>
+
+                                <div class="text__container" style="font-size:.92em;">
+                                    {{ comment.comment_text|safe }}
+                                </div>
+
+                                {% if comment.comment_file %}
+                                <div class="mt-2 p-2" style="background:#f8f9fa; border-radius:6px; font-size:.85em;">
+                                    <i class="fas fa-paperclip text-muted mr-1"></i>
+                                    <a href="/media/{{ comment.comment_file }}" target="_blank" rel="noopener">{{ comment.comment_file.name|slice:"9:" }}</a>
+                                    <a href="/media/{{ comment.comment_file }}" download class="text-muted ml-2" title="Скачать"><i class="fas fa-download"></i></a>
+                                </div>
+                                {% endif %}
+                                {% for f in comment.files.all %}
+                                <div class="mt-2 p-2" style="background:#f8f9fa; border-radius:6px; font-size:.85em;">
+                                    <i class="fas fa-paperclip text-muted mr-1"></i>
+                                    <a href="{{ f.get_file_url }}" target="_blank" rel="noopener">{{ f.get_filename }}</a>
+                                    <a href="{{ f.get_file_url }}" download class="text-muted ml-2" title="Скачать"><i class="fas fa-download"></i></a>
+                                </div>
+                                {% endfor %}
+                                {% if comment.comment_isresult %}
+                                <div class="alert alert-success py-1 px-2 mt-2 mb-0" style="font-size:.85em;">
+                                    <i class="fas fa-check-double"></i> Отмечено как решение
+                                </div>
+                                {% endif %}
+
+                                <div class="mt-2" style="font-size:.82em;">
+                                    {% if comment.comment_author != user %}
+                                    <a href="#" class="text-muted mr-2"
+                                       onclick="replyTo('{{ comment.comment_author.get_full_name|default:comment.comment_author.username }}', this, {{ comment.id }}); return false;">
+                                        <i class="fas fa-reply"></i> Ответить
+                                    </a>
+                                    {% endif %}
+                                    {% if not comment.comment_isresult and comment.comment_author.is_staff and comment.comment_author != user %}
+                                    <a href="{{ task.get_absolute_url }}/accept/{{ comment.id }}" class="text-muted mr-2">
+                                        <i class="far fa-check-circle"></i> Отметить как решение
+                                    </a>
+                                    {% endif %}
+                                    {% if comment.comment_author == user %}
+                                    <a href="#" class="text-muted mr-2" onclick="toggleEditForm({{ comment.id }}); return false;">
+                                        <i class="fas fa-pencil-alt"></i> Редактировать
+                                    </a>
+                                    <a href="#" class="text-danger" onclick="confirmDeleteComment('{{ task.get_absolute_url }}/comment/{{ comment.id }}/delete'); return false;">
+                                        <i class="far fa-trash-alt"></i> Удалить
+                                    </a>
+                                    {% endif %}
+                                </div>
+
+                                {% if comment.comment_author == user %}
+                                <div id="edit-form-{{ comment.id }}" style="display:none; margin-top:10px;">
+                                    <form method="POST" action="{{ task.get_absolute_url }}/comment/{{ comment.id }}/edit" enctype="multipart/form-data">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="reply_blockquote" id="edit-blockquote-{{ comment.id }}">
+                                        <textarea name="comment_text" id="edit-editor-{{ comment.id }}"></textarea>
+                                        <div class="mt-2 d-flex flex-wrap align-items-center" id="edit-files-{{ comment.id }}" style="gap:6px;">
+                                            {% if comment.comment_file %}
+                                            <span class="badge badge-light border edit-file-chip" data-legacy="1" style="font-size:.8em; padding:5px 8px;">
+                                                <i class="fas fa-paperclip mr-1"></i>{{ comment.comment_file.name|slice:"9:" }}
+                                                <a href="#" class="ml-1 remove-edit-file" style="color:#dc3545;">&times;</a>
+                                            </span>
+                                            {% endif %}
+                                            {% for f in comment.files.all %}
+                                            <span class="badge badge-light border edit-file-chip" data-existing-id="{{ f.id }}" style="font-size:.8em; padding:5px 8px;">
+                                                <i class="fas fa-paperclip mr-1"></i>{{ f.get_filename }}
+                                                <a href="#" class="ml-1 remove-edit-file" style="color:#dc3545;">&times;</a>
+                                            </span>
+                                            {% endfor %}
+                                            <label class="btn btn-sm btn-outline-secondary mb-0" style="cursor:pointer; font-size:.8em;">
+                                                <i class="fas fa-paperclip mr-1"></i>Добавить
+                                                <input type="file" name="comment_files" multiple hidden class="edit-file-input" data-comment-id="{{ comment.id }}">
+                                            </label>
+                                        </div>
+                                        <div class="edit-delete-fields" id="edit-delete-fields-{{ comment.id }}"></div>
+                                        <div class="mt-2">
+                                            <button type="submit" class="btn btn-sm btn-success">Сохранить</button>
+                                            <button type="button" class="btn btn-sm btn-outline-secondary ml-1" onclick="toggleEditForm({{ comment.id }})">Отмена</button>
+                                        </div>
+                                    </form>
+                                </div>
+                                {% endif %}
+                            </div>
+                            {% empty %}
+                            <p class="text-muted">Пока нет комментариев</p>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+                
+
+            </div>
+        </div>
+    </div>
+    
+</div>
+
+
+<div class="modal fade" id="deleteFileModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content">
+            <div class="modal-body text-center py-4">
+                <i class="far fa-trash-alt text-danger fa-2x mb-3 d-block"></i>
+                <p class="mb-1">Удалить файл?</p>
+                <small class="text-muted" id="deleteFileName"></small>
+            </div>
+            <div class="modal-footer justify-content-center border-0 pt-0">
+                <button class="btn btn-outline-secondary btn-sm" data-dismiss="modal">Отмена</button>
+                <a id="deleteFileConfirm" href="#" class="btn btn-danger btn-sm">Удалить</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="deleteCommentModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-dialog-centered modal-sm" role="document">
+        <div class="modal-content">
+            <div class="modal-body text-center py-4">
+                <i class="far fa-trash-alt text-danger fa-2x mb-3 d-block"></i>
+                <p class="mb-0">Удалить комментарий?</p>
+            </div>
+            <div class="modal-footer justify-content-center border-0 pt-0">
+                <button class="btn btn-outline-secondary btn-sm" data-dismiss="modal">Отмена</button>
+                <a id="deleteCommentConfirm" href="#" class="btn btn-danger btn-sm">Удалить</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% include "dialogs/attach_file_dialog.html" %}
+{% if user.is_staff %}
+    {% include "dialogs/task_history_dialog.html" %}
+{% endif %}
+
+
+<script>
+    function replyTo(authorName, link, commentId) {
+        var container = $(link).closest('.comment-card').find('.text__container').clone();
+        container.find('blockquote').remove();
+        var directText = container.text().trim();
+        if (!directText) return;
+
+        $('#replyAuthorInput').val(authorName);
+        $('#replyTextInput').val(directText);
+        $('#replyCommentIdInput').val(commentId);
+        $('#replyPreviewAuthor').text('В ответ на ' + authorName + ':');
+        $('#replyPreviewText').text(directText.length > 120 ? directText.substring(0, 120) + '...' : directText);
+        $('#replyPreview').show();
+
+        $('#editor').trumbowyg('empty');
+        document.querySelector('.comments-form-card').scrollIntoView({behavior: 'smooth'});
+        setTimeout(function(){ $('#editor').trumbowyg('focus'); }, 400);
+    }
+
+    var commentDropZone = document.getElementById('commentDropZone');
+    var commentFileInput = document.getElementById('commentFileInput');
+    var commentFilePreview = document.getElementById('commentFilePreview');
+    var commentSelectedFiles = [];
+
+    commentDropZone.addEventListener('click', function() { commentFileInput.click(); });
+
+    commentDropZone.addEventListener('dragover', function(e) {
+        e.preventDefault();
+        commentDropZone.style.borderColor = '#0088cc';
+        commentDropZone.style.background = '#f0f8ff';
+    });
+    commentDropZone.addEventListener('dragleave', function() {
+        commentDropZone.style.borderColor = '#ced4da';
+        commentDropZone.style.background = '';
+    });
+    commentDropZone.addEventListener('drop', function(e) {
+        e.preventDefault();
+        commentDropZone.style.borderColor = '#ced4da';
+        commentDropZone.style.background = '';
+        Array.from(e.dataTransfer.files).forEach(function(f) { commentSelectedFiles.push(f); });
+        renderCommentFilePreview();
+    });
+    commentFileInput.addEventListener('change', function() {
+        Array.from(this.files).forEach(function(f) { commentSelectedFiles.push(f); });
+        renderCommentFilePreview();
+    });
+
+    function renderCommentFilePreview() {
+        commentFilePreview.innerHTML = '';
+        if (commentSelectedFiles.length === 0) {
+            commentFilePreview.style.display = 'none';
+            commentDropZone.style.borderColor = '#ced4da';
+            document.getElementById('commentDropLabel').textContent = 'Прикрепить файлы — перетащите или нажмите';
+            return;
+        }
+        commentFilePreview.style.display = 'flex';
+        commentDropZone.style.borderColor = '#28a745';
+        document.getElementById('commentDropLabel').textContent = 'Прикреплено файлов: ' + commentSelectedFiles.length;
+        commentSelectedFiles.forEach(function(file, idx) {
+            var item = document.createElement('span');
+            item.className = 'badge badge-light border';
+            item.style.cssText = 'font-size:.8em; padding:5px 8px;';
+            item.innerHTML = '<i class="fas fa-paperclip mr-1"></i>' + file.name + ' <a href="#" class="ml-1" style="color:#dc3545;">&times;</a>';
+            item.querySelector('a').addEventListener('click', function(e) {
+                e.preventDefault();
+                commentSelectedFiles.splice(idx, 1);
+                renderCommentFilePreview();
+            });
+            commentFilePreview.appendChild(item);
+        });
+    }
+
+    document.querySelector('.comments-form-card form').addEventListener('submit', function() {
+        var dt = new DataTransfer();
+        commentSelectedFiles.forEach(function(f) { dt.items.add(f); });
+        commentFileInput.files = dt.files;
+    });
+
+    function toggleEditForm(commentId) {
+        var form = document.getElementById('edit-form-' + commentId);
+        var isHidden = form.style.display === 'none' || form.style.display === '';
+        form.style.display = isHidden ? 'block' : 'none';
+        if (isHidden) {
+            var $editor = $('#edit-editor-' + commentId);
+
+            // Берём контент комментария, отделяем цитату от текста ответа
+            var $content = $('#comment-' + commentId).find('.text__container').clone();
+            var $blockquote = $content.find('blockquote').first();
+            var blockquoteHtml = $blockquote.length ? $blockquote[0].outerHTML : '';
+            $blockquote.remove();
+            var replyText = $content.html().trim();
+
+            // Сохраняем цитату в скрытое поле
+            $('#edit-blockquote-' + commentId).val(blockquoteHtml);
+
+            // Инициализируем редактор только с текстом ответа
+            if (!$editor.data('trumbowyg')) {
+                $editor.trumbowyg({
+                    btns: [['strong', 'em', 'del'], ['unorderedList', 'orderedList'], ['removeformat']]
+                });
+            }
+            $editor.trumbowyg('html', replyText || '');
+        }
+    }
+
+    // Управление вложениями в форме редактирования комментария —
+    // единый ряд «чипов» для старых и новых файлов, без чекбоксов
+    var editStagedFiles = {};
+
+    function renderEditStagedChips(commentId) {
+        var container = document.getElementById('edit-files-' + commentId);
+        container.querySelectorAll('[data-staged]').forEach(function(el) { el.remove(); });
+        var addLabel = container.querySelector('label');
+        (editStagedFiles[commentId] || []).forEach(function(file, idx) {
+            var chip = document.createElement('span');
+            chip.className = 'badge badge-light border edit-file-chip';
+            chip.setAttribute('data-staged', '1');
+            chip.style.cssText = 'font-size:.8em; padding:5px 8px;';
+            chip.innerHTML = '<i class="fas fa-paperclip mr-1"></i>' + file.name +
+                ' <a href="#" class="ml-1 remove-staged-file" style="color:#dc3545;">&times;</a>';
+            chip.querySelector('a').addEventListener('click', function(e) {
+                e.preventDefault();
+                editStagedFiles[commentId].splice(idx, 1);
+                renderEditStagedChips(commentId);
+            });
+            container.insertBefore(chip, addLabel);
+        });
+    }
+
+    document.querySelectorAll('.edit-file-input').forEach(function(input) {
+        var commentId = input.dataset.commentId;
+        input.addEventListener('click', function(e) { e.stopPropagation(); });
+        input.addEventListener('change', function() {
+            editStagedFiles[commentId] = editStagedFiles[commentId] || [];
+            Array.from(this.files).forEach(function(f) { editStagedFiles[commentId].push(f); });
+            renderEditStagedChips(commentId);
+        });
+    });
+
+    document.addEventListener('click', function(e) {
+        if (!e.target.classList.contains('remove-edit-file')) return;
+        e.preventDefault();
+        var chip = e.target.closest('.edit-file-chip');
+        var container = chip.closest('[id^="edit-files-"]');
+        var commentId = container.id.replace('edit-files-', '');
+        var deleteFields = document.getElementById('edit-delete-fields-' + commentId);
+        var hidden = document.createElement('input');
+        hidden.type = 'hidden';
+        if (chip.dataset.legacy) {
+            hidden.name = 'delete_legacy_file';
+            hidden.value = 'on';
+        } else {
+            hidden.name = 'delete_file_ids';
+            hidden.value = chip.dataset.existingId;
+        }
+        deleteFields.appendChild(hidden);
+        chip.remove();
+    });
+
+    document.querySelectorAll('[id^="edit-form-"] form').forEach(function(form) {
+        form.addEventListener('submit', function() {
+            var commentId = form.closest('[id^="edit-form-"]').id.replace('edit-form-', '');
+            var input = form.querySelector('.edit-file-input');
+            var files = editStagedFiles[commentId] || [];
+            var dt = new DataTransfer();
+            files.forEach(function(f) { dt.items.add(f); });
+            input.files = dt.files;
+        });
+    });
+
+    function confirmDeleteComment(url) {
+        $('#deleteCommentConfirm').attr('href', url);
+        $('#deleteCommentModal').modal('show');
+    }
+
+    function confirmDelete(url, filename) {
+        $('#deleteFileName').text(filename);
+        $('#deleteFileConfirm').attr('href', url);
+        $('#deleteFileModal').modal('show');
+    }
+
+    function cancelReply() {
+        $('#replyPreview').hide();
+        $('#replyAuthorInput').val('');
+        $('#replyTextInput').val('');
+        $('#replyCommentIdInput').val('');
+    }
+
+    // Клик на цитату → прокрутка к оригинальному комментарию
+    $(document).on('click', '.text__container blockquote[data-reply-id]', function() {
+        var id = $(this).data('reply-id');
+        var target = $('#comment-' + id);
+        if (target.length) {
+            target[0].scrollIntoView({behavior: 'smooth', block: 'center'});
+            target.css('transition', 'background .3s').css('background', '#fff3cd');
+            setTimeout(function(){ target.css('background', ''); }, 1500);
+        }
+    });
+</script>
+
+<script>
+    var currentEditor = null;
+
+    $.extend(true, $.trumbowyg, {
+        plugins: {
+            imageUpload: {
+                init: function(t) {
+                    t.addBtnDef('imageUpload', {
+                        fn: function() {
+                            t.saveRange();
+                            currentEditor = t;
+                            selectedImgFiles = [];
+                            document.getElementById('imgDropLabel').textContent = 'Перетащите изображения или нажмите для выбора';
+                            document.getElementById('imgDropZone').style.borderColor = '#ced4da';
+                            document.getElementById('imgDropZone').style.background = '';
+                            document.getElementById('imgDropIcon').style.display = 'block';
+                            document.getElementById('imgPreviewGrid').style.display = 'none';
+                            document.getElementById('imgPreviewGrid').innerHTML = '';
+                            document.getElementById('imgUploadConfirm').disabled = true;
+                            document.getElementById('imgUploadConfirm').textContent = 'Вставить';
+                            $('#imageUploadModal').modal('show');
+                        },
+                        title: 'Вставить изображение',
+                        ico: 'insertImage'
+                    });
+                }
+            }
+        }
+    });
+
+    $('#editor').trumbowyg({
+        btns: [
+            ['viewHTML'],
+            ['undo', 'redo'],
+            ['formatting'],
+            ['strong', 'em', 'del'],
+            ['superscript', 'subscript'],
+            ['justifyLeft', 'justifyCenter', 'justifyRight', 'justifyFull'],
+            ['unorderedList', 'orderedList'],
+            ['horizontalRule'],
+            ['imageUpload'],
+            ['removeformat'],
+            ['fullscreen']
+        ]
+    });
+
+    $(document).ready(function() {
+        var selectedImgFiles = [];
+        var imgDropZone = document.getElementById('imgDropZone');
+        var imgFileInput = document.getElementById('imgFileInput');
+
+        imgDropZone.addEventListener('click', function() { imgFileInput.click(); });
+        imgDropZone.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            imgDropZone.style.borderColor = '#0088cc';
+            imgDropZone.style.background = '#f0f8ff';
+        });
+        imgDropZone.addEventListener('dragleave', function() {
+            imgDropZone.style.borderColor = selectedImgFiles.length ? '#28a745' : '#ced4da';
+            imgDropZone.style.background = '';
+        });
+        imgDropZone.addEventListener('drop', function(e) {
+            e.preventDefault();
+            imgDropZone.style.background = '';
+            setImgFiles(e.dataTransfer.files);
+        });
+        imgFileInput.addEventListener('change', function() {
+            setImgFiles(this.files);
+        });
+
+        function setImgFiles(files) {
+            var newImages = Array.from(files).filter(function(f) { return f.type.startsWith('image/'); });
+            if (!newImages.length) return;
+            selectedImgFiles = selectedImgFiles.concat(newImages);
+
+            imgDropZone.style.borderColor = '#28a745';
+            document.getElementById('imgDropIcon').style.display = 'none';
+            document.getElementById('imgDropLabel').textContent = selectedImgFiles.length + ' файл(ов) выбрано';
+            document.getElementById('imgUploadConfirm').disabled = false;
+
+            var grid = document.getElementById('imgPreviewGrid');
+            grid.style.display = 'flex';
+            grid.style.flexWrap = 'wrap';
+            grid.style.gap = '6px';
+            grid.style.justifyContent = 'center';
+
+            newImages.forEach(function(file) {
+                var reader = new FileReader();
+                reader.onload = function(e) {
+                    var img = document.createElement('img');
+                    img.src = e.target.result;
+                    img.style.cssText = 'max-width:120px; max-height:90px; border-radius:6px; object-fit:cover;';
+                    grid.appendChild(img);
+                };
+                reader.readAsDataURL(file);
+            });
+        }
+
+        document.getElementById('imgUploadConfirm').addEventListener('click', function() {
+            if (!selectedImgFiles.length || !currentEditor) return;
+            var btn = this;
+            btn.disabled = true;
+            var total = selectedImgFiles.length;
+
+            function uploadNext(index) {
+                if (index >= total) { $('#imageUploadModal').modal('hide'); return; }
+                btn.textContent = 'Загрузка ' + (index + 1) + '/' + total + '...';
+                var formData = new FormData();
+                formData.append('file', selectedImgFiles[index]);
+                $.ajax({
+                    url: '/tasks/upload-image',
+                    method: 'POST',
+                    data: formData,
+                    processData: false,
+                    contentType: false,
+                    success: function(response) {
+                        currentEditor.restoreRange();
+                        currentEditor.execCmd('insertImage', response.url, false, true);
+                        uploadNext(index + 1);
+                    },
+                    error: function() {
+                        btn.textContent = 'Ошибка';
+                        setTimeout(function() { btn.disabled = false; btn.textContent = 'Вставить'; }, 2000);
+                    }
+                });
+            }
+            uploadNext(0);
+        });
+    });
+</script>
+<div class="modal fade" id="imageUploadModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header py-3" style="border-bottom:1px solid #dee2e6;">
+                <h6 class="modal-title font-weight-bold mb-0">Вставить изображение</h6>
+                <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+            </div>
+            <div class="modal-body">
+                <div id="imgDropZone" style="border:2px dashed #ced4da; border-radius:6px; padding:20px; text-align:center; cursor:pointer; transition:all .2s;">
+                    <i class="fas fa-image fa-2x text-muted mb-2" id="imgDropIcon" style="display:block;"></i>
+                    <span class="text-muted" id="imgDropLabel">Перетащите изображения или нажмите для выбора</span>
+                    <input type="file" id="imgFileInput" accept="image/*" hidden multiple>
+                    <div id="imgPreviewGrid" style="display:none; margin-top:10px;"></div>
+                </div>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button class="btn btn-outline-secondary btn-sm" data-dismiss="modal">Отмена</button>
+                <button class="btn btn-success btn-sm" id="imgUploadConfirm" disabled>Вставить</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock content %}

@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block breadcrumbs %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-11 offset-md-1 mt_80">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="/"><i class="fas fa-home"></i></a></li>
+                    <li class="breadcrumb-item"><a href="/docs/">Документы</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Регламент обработки заявок</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+</div>
+{% endblock breadcrumbs %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="bg_white shadow-sm pd_20 mrgn_10">
+                <h5 class="mb-3"><i class="far fa-clock text-muted mr-2"></i>Регламент обработки заявок</h5>
+                <p>Скорость реакции на обращение зависит от приоритета, указанного при создании заявки:</p>
+                <table class="table table-sm">
+                    <thead>
+                        <tr><th>Приоритет</th><th>Время первой реакции</th><th>Целевой срок решения</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><span class="badge badge-secondary">Низкий</span></td><td>до 1 рабочего дня</td><td>до 5 рабочих дней</td></tr>
+                        <tr><td><span class="badge badge-warning">Высокий</span></td><td>до 4 рабочих часов</td><td>до 2 рабочих дней</td></tr>
+                        <tr><td><span class="badge badge-danger">Критический</span></td><td>до 1 рабочего часа</td><td>до 1 рабочего дня</td></tr>
+                    </tbody>
+                </table>
+                <p class="mt-3">Если ответственный запросил дополнительную информацию (статус «На уточнении»), срок реакции приостанавливается до получения ответа от заказчика.</p>
+                <p>Заявка считается решённой, когда она переходит в статус «Предоставлен». Заказчик может закрыть её или переоткрыть, если проблема повторилась.</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock content %}

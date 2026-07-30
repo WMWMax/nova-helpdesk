@@ -1,0 +1,27 @@
+<!-- Modal -->
+<div class="modal fade" id="AttachFileModal" tabindex="-1" aria-labelledby="AttachFileLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="AttachFileLabel">Добавить файлы</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+       <form action="{{task.get_absolute_url}}/attach" method="POST" enctype="multipart/form-data">
+            {% csrf_token %} 
+            <div class="modal-body">                
+                    <div class="form-group">                                               
+                        <input type="file" name='file' multiple></br>
+                        <small class='text-muted'>Можно приложить несколько файлов</small>
+                    </div>    
+                
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Отмена</button>
+                <button type="submit" class="btn btn-success">Отправить</button>
+            </div>
+       </form>
+    </div>
+  </div>
+</div>

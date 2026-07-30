@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block breadcrumbs %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-11 offset-md-1 mt_80">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="/"><i class="fas fa-home"></i></a></li>
+                    <li class="breadcrumb-item"><a href="/docs/">Документы</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Часто задаваемые вопросы</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+</div>
+{% endblock breadcrumbs %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="bg_white shadow-sm pd_20 mrgn_10">
+                <h5 class="mb-3"><i class="far fa-question-circle text-muted mr-2"></i>Часто задаваемые вопросы</h5>
+
+                <p><strong>Как отследить статус заявки без входа в аккаунт?</strong></p>
+                <p class="text-muted">У каждой заявки есть уникальный UID. Введите его вместе с email, указанным при создании заявки, на странице проверки статуса.</p>
+
+                <p class="mt-3"><strong>Можно ли изменить приоритет уже созданной заявки?</strong></p>
+                <p class="text-muted">Да, пока заявка не закрыта — через режим редактирования на странице просмотра заявки.</p>
+
+                <p class="mt-3"><strong>Что делать, если заявка попала не в тот раздел (КПО)?</strong></p>
+                <p class="text-muted">Оставьте уточняющий комментарий с описанием проблемы — ответственный сотрудник переназначит заявку в нужный раздел.</p>
+
+                <p class="mt-3"><strong>Почему заявка пропала из списка после закрытия?</strong></p>
+                <p class="text-muted">Закрытые и предоставленные заявки скрываются из основного списка пользователя, но остаются доступны на странице «Все заявки» во вкладке «Завершённые».</p>
+
+                <p class="mt-3"><strong>Можно ли удалить свой комментарий?</strong></p>
+                <p class="text-muted">Да, свои комментарии можно редактировать и удалять в любой момент, пока заявка открыта.</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock content %}
